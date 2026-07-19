@@ -1,6 +1,7 @@
 import os
 import shutil
 import logging
+import json
 from typing import Annotated
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,14 +38,61 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# CORS middleware
+# Configure production-safe CORS
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+env_origins = os.getenv("ALLOWED_ORIGINS")
+if env_origins:
+    allowed_origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    allowed_origins.append(frontend_url.strip())
+
+# Clean up origins to prevent trailing slash mismatches
+allowed_origins = list(set(o.rstrip('/') for o in allowed_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def startup_validation():
+    # 1. Database folder checks
+    db_path = os.getenv("DATABASE_PATH", "./users.db")
+    db_dir = os.path.dirname(db_path)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+    
+    # 2. Chroma folder checks
+    chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_db")
+    if not os.path.exists(chroma_path):
+        os.makedirs(chroma_path, exist_ok=True)
+        
+    # 3. Upload folder checks
+    upload_dir = os.getenv("UPLOAD_DIRECTORY", "uploaded_files")
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir, exist_ok=True)
+        
+    # 4. Settings file checks
+    from settings_manager import SETTINGS_FILE, DEFAULT_SETTINGS, save_settings
+    if not os.path.exists(SETTINGS_FILE):
+        save_settings(DEFAULT_SETTINGS)
+        
+    # 5. Activity log checks
+    from activity_logger import LOG_FILE
+    if not os.path.exists(LOG_FILE):
+        try:
+            with open(LOG_FILE, "w", encoding="utf-8") as f:
+                json.dump([], f)
+        except Exception as e:
+            print(f"Error initializing activity logs file: {e}")
 
 # -------------------------
 # Schemas
@@ -170,7 +218,7 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 # File Upload (Admin Only)
 # -------------------------
 
-UPLOAD_DIR = "uploaded_files"
+UPLOAD_DIR = os.getenv("UPLOAD_DIRECTORY", "uploaded_files")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # File types the pipeline can actually ingest

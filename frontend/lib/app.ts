@@ -1,3 +1,5 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export async function askRag(question: string) {
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -7,7 +9,7 @@ export async function askRag(question: string) {
   }
 
   const res = await fetch(
-    `http://localhost:8000/ask`,
+    `${API_BASE_URL}/ask`,
     {
       method: "POST",
       headers: headers,

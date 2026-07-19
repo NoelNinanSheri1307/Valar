@@ -25,7 +25,8 @@ type SupportTicket = {
     user: string;
 };
 
-// Simple clsx utility helper
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 function cn(...classes: string[]) {
     return classes.filter(Boolean).join(" ");
 }
@@ -96,7 +97,7 @@ export default function AdminPage() {
     const fetchSettings = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/settings', {
+            const res = await fetch(`${API_BASE_URL}/settings`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -132,7 +133,7 @@ export default function AdminPage() {
                 setSystemPrompt(prompt);
             }
 
-            const res = await fetch('http://localhost:8000/settings', {
+            const res = await fetch(`${API_BASE_URL}/settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -167,7 +168,7 @@ export default function AdminPage() {
     const handleResetSettings = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/settings/reset', {
+            const res = await fetch(`${API_BASE_URL}/settings/reset`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -196,7 +197,7 @@ export default function AdminPage() {
     const fetchActivityLogs = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/analytics/activity', {
+            const res = await fetch(`${API_BASE_URL}/analytics/activity`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -237,7 +238,7 @@ export default function AdminPage() {
         showToast("Re-indexing document... Please wait.", "info");
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
+            const res = await fetch(`${API_BASE_URL}/reindex/${encodeURIComponent(filename)}`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -251,7 +252,7 @@ export default function AdminPage() {
                 attempts++;
                 try {
                     const statusRes = await fetch(
-                        `http://localhost:8000/reindex/${encodeURIComponent(filename)}/status`,
+                        `${API_BASE_URL}/reindex/${encodeURIComponent(filename)}/status`,
                         { headers: { Authorization: `Bearer ${token}` } }
                     );
                     const statusData = await statusRes.json();
@@ -285,7 +286,7 @@ export default function AdminPage() {
         setDeleteState(prev => ({ ...prev, [filename]: "loading" }));
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:8000/files/${encodeURIComponent(filename)}`, {
+            const res = await fetch(`${API_BASE_URL}/files/${encodeURIComponent(filename)}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -307,7 +308,7 @@ export default function AdminPage() {
     const fetchFaqs = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/faq', {
+            const res = await fetch(`${API_BASE_URL}/faq`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -326,7 +327,7 @@ export default function AdminPage() {
         }
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/faq', {
+            const res = await fetch(`${API_BASE_URL}/faq`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -356,7 +357,7 @@ export default function AdminPage() {
     const confirmDeleteFaq = async (id: number) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8000/faq/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/faq/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -375,7 +376,7 @@ export default function AdminPage() {
     const fetchAnalytics = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/analytics/gaps', {
+            const res = await fetch(`${API_BASE_URL}/analytics/gaps`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -389,7 +390,7 @@ export default function AdminPage() {
     const fetchFiles = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/files', {
+            const res = await fetch(`${API_BASE_URL}/files`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -467,7 +468,7 @@ export default function AdminPage() {
             // Real-time backend system status check
             const checkHealth = async () => {
                 try {
-                    const res = await fetch("http://localhost:8000/");
+                    const res = await fetch(`${API_BASE_URL}/`);
                     if (res.ok) {
                         setSystemStatus({ vectorStore: "Online", sqLite: "Online" });
                     } else {

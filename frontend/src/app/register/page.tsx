@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bot, Loader2, UserPlus } from 'lucide-react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function RegisterPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -17,7 +19,7 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://localhost:8000/register_admin', {
+            const res = await fetch(`${API_BASE_URL}/register_admin`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

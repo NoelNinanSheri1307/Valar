@@ -2,7 +2,21 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateT
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./users.db"
+import os
+
+database_path = os.getenv("DATABASE_PATH", "./users.db")
+if database_path.startswith("sqlite:///"):
+    SQLALCHEMY_DATABASE_URL = database_path
+else:
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{database_path}"
+
+# Ensure parent directory exists for SQLite file
+db_dir = os.path.dirname(database_path.replace("sqlite:///", ""))
+if db_dir and not os.path.exists(db_dir):
+    try:
+        os.makedirs(db_dir, exist_ok=True)
+    except Exception as e:
+        print(f"Error creating database directory {db_dir}: {e}")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}

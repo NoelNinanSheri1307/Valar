@@ -37,7 +37,7 @@ os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 
 RELEVANCE_THRESHOLD = 0.15
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-CHROMA_PERSIST_DIR = "./chroma_db"
+CHROMA_PERSIST_DIR = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 
 if not OPENROUTER_API_KEY:
     raise ValueError("OPENROUTER_API_KEY not found in .env file")
