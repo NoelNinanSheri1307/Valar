@@ -64,10 +64,9 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
     const [ticketPriority, setTicketPriority] = useState("Medium");
     const [ticketSuccess, setTicketSuccess] = useState(false);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
 
-    const deleteSession = async (sessionId: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!confirm("Are you sure you want to delete this conversation?")) return;
+    const confirmDeleteSession = async (sessionId: number) => {
         try {
             const token = localStorage.getItem('token');
             const res = await fetch(`http://localhost:8000/sessions/${sessionId}`, {
@@ -407,7 +406,10 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                         <span className="truncate flex-1">{session.title}</span>
                                         
                                         <button 
-                                            onClick={(e) => deleteSession(session.id, e)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSessionToDelete(session.id);
+                                            }}
                                             className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded text-gray-400 hover:text-red-400 transition-all shrink-0"
                                             title="Delete Session"
                                         >
@@ -839,6 +841,42 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Deletion Confirmation Modal */}
+            {sessionToDelete !== null && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-[#1e1e1e] border border-white/10 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative font-sans">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                <Trash2 size={20} />
+                            </div>
+                            <h3 className="text-base font-semibold text-white mb-2">Delete Conversation?</h3>
+                            <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                                Are you sure you want to delete this conversation? This action cannot be undone and will permanently remove all messages.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setSessionToDelete(null)}
+                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium text-gray-300 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const id = sessionToDelete;
+                                        setSessionToDelete(null);
+                                        await confirmDeleteSession(id);
+                                    }}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium font-semibold transition-colors"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
