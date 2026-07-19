@@ -65,7 +65,8 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
             });
 
             if (!res.ok) {
-                throw new Error('Upload failed');
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || 'Upload failed');
             }
 
             setStatus('success');
@@ -74,10 +75,11 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                 setFile(null);
                 setStatus('idle');
             }, 3000);
-        } catch {
+        } catch (err: unknown) {
             setStatus('error');
-            setErrorMessage('Failed to upload and index document.');
+            setErrorMessage(err instanceof Error ? err.message : 'Failed to upload and index document.');
         }
+
     };
 
     return (

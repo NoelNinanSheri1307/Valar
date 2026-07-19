@@ -64,19 +64,29 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 def ingest_document(file_path: str):
     """
-    Load a file (PDF or Text), split it, and add to vectorstore.
+    Load a file (PDF, TXT, DOCX, DOC), split it, and add to vectorstore.
+    Supported loaders:
+      .pdf  -> PyPDFLoader
+      .txt  -> TextLoader
+      .docx -> Docx2txtLoader (python-docx + docx2txt)
+      .doc  -> Docx2txtLoader (best-effort; works for most modern .doc files)
     """
-    if file_path.endswith(".pdf"):
+    ext = os.path.splitext(file_path)[1].lower()
+
+    if ext == ".pdf":
         loader = PyPDFLoader(file_path)
+    elif ext == ".txt":
+        loader = TextLoader(file_path, encoding="utf-8")
+    elif ext == ".docx":
+        from langchain_community.document_loaders import Docx2txtLoader
+        loader = Docx2txtLoader(file_path)
     else:
-        # Default to text loader for other formats
-        loader = TextLoader(file_path)
-    
+        raise ValueError(f"Unsupported file type: {ext}")
+
     docs = loader.load()
     splits = text_splitter.split_documents(docs)
     vectorstore.add_documents(documents=splits)
-    # vectorstore.persist() # Chroma 0.4+ persists automatically or uses a different mechanism, but explicit persist calls are sometimes needed depending on version. 
-    # For newer versions, it's auto-persisted.
+
 
 # =========================================================
 # RETRIEVAL

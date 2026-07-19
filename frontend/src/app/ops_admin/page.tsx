@@ -41,12 +41,42 @@ export default function AdminPage() {
     // Support tickets state
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
-    // Re-index state: filename -> "idle" | "loading" | "done" | "error"
+    // FAQ and Analytics integrated states
+    type FaqRule = { id: number; keyword: string; response: string; is_active: boolean };
+    const [faqs, setFaqs] = useState<FaqRule[]>([]);
+    const [newKeyword, setNewKeyword] = useState("");
+    const [newResponse, setNewResponse] = useState("");
+    const [newIsActive, setNewIsActive] = useState(true);
+    const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
+    const [faqToDelete, setFaqToDelete] = useState<number | null>(null);
+    const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+    const [systemStatus, setSystemStatus] = useState({ vectorStore: "Checking Status", sqLite: "Checking Status" });
+
+    const showToast = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+        setToast({ message, type });
+    };
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
+    type GapItem = { query_text: string; failure_count: number; highest_score: number; created_at: string };
+    const [analyticsData, setAnalyticsData] = useState<{ failed_rate: string; total_failed: number; gaps: GapItem[] }>({
+        failed_rate: "0.0%",
+        total_failed: 0,
+        gaps: [],
+    });
+
     const [reindexState, setReindexState] = useState<Record<string, string>>({});
+    const [deleteState, setDeleteState] = useState<Record<string, string>>({});
 
     const handleReindex = async (filename: string) => {
         if (reindexState[filename] === "loading") return; // prevent duplicate
         setReindexState(prev => ({ ...prev, [filename]: "loading" }));
+        showToast("Re-indexing document... Please wait.", "info");
         try {
             const token = localStorage.getItem("token");
             const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
@@ -70,49 +100,51 @@ export default function AdminPage() {
                     if (statusData.status === "done") {
                         clearInterval(poll);
                         setReindexState(prev => ({ ...prev, [filename]: "done" }));
+                        showToast("Document re-indexed successfully.", "success");
                         setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 4000);
                     } else if (statusData.status === "error") {
                         clearInterval(poll);
                         setReindexState(prev => ({ ...prev, [filename]: `error:${statusData.detail}` }));
+                        showToast(`Re-index failed: ${statusData.detail}`, "error");
                         setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
                     } else if (attempts >= 60) {
                         clearInterval(poll);
                         setReindexState(prev => ({ ...prev, [filename]: "error:Timed out" }));
+                        showToast("Re-index failed: Timed out.", "error");
                         setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
                     }
                 } catch { /* network hiccup, keep polling */ }
             }, 2000);
         } catch (err: any) {
             setReindexState(prev => ({ ...prev, [filename]: `error:${err.message}` }));
+            showToast(`Re-index failed: ${err.message}`, "error");
             setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
         }
     };
 
-    // FAQ and Analytics integrated states
-    const [faqs, setFaqs] = useState<any[]>([]);
-    const [newKeyword, setNewKeyword] = useState("");
-    const [newResponse, setNewResponse] = useState("");
-    const [newIsActive, setNewIsActive] = useState(true);
-    const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
-    const [faqToDelete, setFaqToDelete] = useState<number | null>(null);
-    const [systemStatus, setSystemStatus] = useState({ vectorStore: "Checking Status", sqLite: "Checking Status" });
-
-    const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-        setToast({ message, type });
-    };
-
-    useEffect(() => {
-        if (toast) {
-            const timer = setTimeout(() => setToast(null), 3000);
-            return () => clearTimeout(timer);
+    const confirmDeleteFile = async (filename: string) => {
+        if (deleteState[filename] === "loading") return;
+        setDeleteState(prev => ({ ...prev, [filename]: "loading" }));
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`http://localhost:8000/files/${encodeURIComponent(filename)}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Delete failed");
+            }
+            setDeleteState(prev => ({ ...prev, [filename]: "done" }));
+            showToast(`Document "${filename}" deleted successfully`, "success");
+            fetchFiles(); // refresh list
+            setTimeout(() => setDeleteState(prev => ({ ...prev, [filename]: "idle" })), 3000);
+        } catch (err: any) {
+            setDeleteState(prev => ({ ...prev, [filename]: `error` }));
+            showToast(`Failed to delete: ${err.message}`, "error");
+            setTimeout(() => setDeleteState(prev => ({ ...prev, [filename]: "idle" })), 4000);
         }
-    }, [toast]);
-
-    const [analyticsData, setAnalyticsData] = useState<{ failed_rate: string, total_failed: number, gaps: any[] }>({
-        failed_rate: "0.0%",
-        total_failed: 0,
-        gaps: []
-    });
+    };
 
     const fetchFaqs = async () => {
         try {
@@ -393,8 +425,7 @@ export default function AdminPage() {
                                                         <div className="flex items-center gap-1.5">
                                                             <Clock size={12} />
                                                             <span>{new Date(f.uploaded_at).toLocaleDateString()}</span>
-                                                        </div>
-                                                        {/* Re-index button with live state */}
+                                                        </div>                                                         {/* Re-index button with live state */}
                                                         {(() => {
                                                             const st = reindexState[f.filename] || "idle";
                                                             if (st === "loading") return (
@@ -425,6 +456,21 @@ export default function AdminPage() {
                                                                 </button>
                                                             );
                                                         })()}
+
+                                                        {/* Delete button with live state */}
+                                                        {deleteState[f.filename] === "loading" ? (
+                                                            <span className="flex items-center gap-1 text-gray-400 cursor-wait">
+                                                                <Loader2 size={12} className="animate-spin" />
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => setFileToDelete(f.filename)}
+                                                                className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-colors"
+                                                                title="Delete document"
+                                                            >
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -745,7 +791,43 @@ export default function AdminPage() {
                                     setFaqToDelete(null);
                                     await confirmDeleteFaq(id);
                                 }}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium font-semibold transition-colors"
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Custom Deletion Confirmation Modal for indexed documents */}
+        {fileToDelete !== null && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                <div className="bg-[#1e1e1e] border border-white/10 w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl relative font-sans">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                    <div className="p-6 text-center">
+                        <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                            <Trash2 size={20} />
+                        </div>
+                        <h3 className="text-base font-semibold text-white mb-2">Delete Document?</h3>
+                        <p className="text-xs text-gray-400 mb-6 leading-relaxed break-all px-2" title={fileToDelete}>
+                            Are you sure you want to delete "{fileToDelete}"? This cannot be undone.
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={() => setFileToDelete(null)}
+                                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium text-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const fname = fileToDelete;
+                                    setFileToDelete(null);
+                                    await confirmDeleteFile(fname);
+                                }}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors"
                             >
                                 Delete
                             </button>
@@ -764,6 +846,9 @@ export default function AdminPage() {
                     toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
                     "bg-white/10 border-white/10 text-gray-200"
                 )}>
+                    {toast.type === 'success' ? <CheckCircle2 size={16} className="text-green-400" /> : 
+                     toast.type === 'error' ? <AlertCircle size={16} className="text-red-400" /> : 
+                     <Loader2 size={16} className="animate-spin text-purple-400" />}
                     <span className="text-xs font-semibold">{toast.message}</span>
                     <button onClick={() => setToast(null)} className="hover:bg-white/10 p-1 rounded transition-colors text-gray-400 hover:text-white">
                         <X size={12} />
