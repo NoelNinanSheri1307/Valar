@@ -123,7 +123,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
     const hasItems = uploadQueue.length > 0;
 
     return (
-        <div className="bg-card-background border border-border-default rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-card-background border border-border-default rounded-2xl p-6 md:p-8 shadow-md relative overflow-hidden font-sans">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-400"></div>
 
             <div className="flex justify-between items-center mb-6">
@@ -135,7 +135,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                     <button
                         onClick={clearQueue}
                         disabled={isUploading}
-                        className="flex items-center gap-1 text-xs text-text-secondary hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none rounded p-0.5 cursor-pointer font-semibold"
                         title="Clear all queue items"
                     >
                         <Trash2 size={14} />
@@ -145,14 +145,21 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
             </div>
 
             <div
+                tabIndex={0}
                 className={cn(
-                    "border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer shadow-inner",
-                    isDragging ? "border-purple-500 bg-purple-500/10 scale-[1.02]" : "border-border-default bg-bg-tertiary hover:border-text-secondary hover:bg-bg-primary"
+                    "border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer shadow-inner focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none",
+                    isDragging ? "border-purple-500 bg-purple-500/10 scale-[1.01]" : "border-border-default bg-bg-tertiary hover:border-purple-500 hover:bg-bg-primary"
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                    }
+                }}
             >
                 <input
                     type="file"
@@ -163,49 +170,49 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                     multiple
                 />
 
-                <div className="w-16 h-16 bg-button-secondary rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300">
+                <div className="w-16 h-16 bg-button-secondary border border-border-default rounded-full flex items-center justify-center mb-4 transition-transform duration-300">
                     <UploadCloud size={32} className="text-text-secondary" />
                 </div>
                 <p className="text-text-primary font-medium text-lg mb-1">Click to select files or drag & drop multiple files</p>
-                <p className="text-text-secondary text-sm opacity-80">PDF, TXT, DOC, DOCX files</p>
+                <p className="text-text-secondary text-sm opacity-80 font-medium">PDF, TXT, DOC, DOCX files</p>
             </div>
 
             {hasItems && (
                 <div className="mt-8 space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                    <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Upload Queue</div>
+                    <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 font-sans">Upload Queue</div>
                     {uploadQueue.map((item) => (
                         <div key={item.id} className="p-3.5 bg-bg-secondary border border-border-default rounded-xl flex flex-col gap-2 relative">
                             <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-2.5 overflow-hidden">
                                     <FileType size={16} className={cn(
-                                        item.status === 'success' ? 'text-green-400' :
-                                        item.status === 'error' ? 'text-red-400' : 'text-text-secondary'
+                                        item.status === 'success' ? 'text-green-500' :
+                                        item.status === 'error' ? 'text-red-500' : 'text-text-secondary'
                                     )} />
-                                    <span className="text-sm font-medium text-text-primary truncate max-w-[250px] sm:max-w-xs md:max-w-sm">
+                                    <span className="text-sm font-semibold text-text-primary truncate max-w-[250px] sm:max-w-xs md:max-w-sm">
                                         {item.file.name}
                                     </span>
-                                    <span className="text-xs text-text-secondary opacity-70 shrink-0">
+                                    <span className="text-xs text-text-secondary opacity-70 shrink-0 font-medium">
                                         ({(item.file.size / 1024 / 1024).toFixed(2)} MB)
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3 shrink-0">
                                     {item.status === 'idle' && (
-                                        <span className="text-xs text-text-secondary">Queued</span>
+                                        <span className="text-xs text-text-secondary font-medium">Queued</span>
                                     )}
                                     {item.status === 'uploading' && (
-                                        <div className="flex items-center gap-1.5 text-blue-400 font-medium text-xs">
+                                        <div className="flex items-center gap-1.5 text-blue-500 font-semibold text-xs">
                                             <Loader2 size={12} className="animate-spin" />
                                             {item.progress}%
                                         </div>
                                     )}
                                     {item.status === 'success' && (
-                                        <span className="flex items-center gap-1 text-green-400 font-semibold text-xs">
+                                        <span className="flex items-center gap-1 text-green-500 font-bold text-xs">
                                             <CheckCircle size={12} />
                                             Indexed
                                         </span>
                                     )}
                                     {item.status === 'error' && (
-                                        <span className="flex items-center gap-1 text-red-400 font-semibold text-xs" title={item.error}>
+                                        <span className="flex items-center gap-1 text-red-500 font-bold text-xs" title={item.error}>
                                             <AlertCircle size={12} />
                                             Failed
                                         </span>
@@ -213,7 +220,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                                     <button
                                         onClick={() => removeFromQueue(item.id)}
                                         disabled={item.status === 'uploading'}
-                                        className="p-1 hover:bg-button-secondary rounded text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        className="p-1 hover:bg-button-secondary rounded-lg text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer"
                                         title="Remove from queue"
                                     >
                                         <X size={12} />
@@ -232,7 +239,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                             )}
 
                             {item.status === 'error' && item.error && (
-                                <p className="text-[11px] text-red-400/90 italic font-medium">
+                                <p className="text-[11px] text-red-500/90 italic font-semibold font-sans">
                                     Error: {item.error}
                                 </p>
                             )}

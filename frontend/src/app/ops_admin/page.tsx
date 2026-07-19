@@ -1022,20 +1022,20 @@ export default function AdminPage() {
         {/* Custom Deletion Confirmation Modal for FAQ rules */}
         {faqToDelete !== null && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-card-background border border-border-default w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative font-sans">
+                <div className="bg-card-background border border-border-default w-full max-w-sm rounded-2xl overflow-hidden shadow-md relative font-sans">
                     <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
                     <div className="p-6 text-center">
                         <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
                             <Trash2 size={20} />
                         </div>
-                        <h3 className="text-base font-semibold text-text-primary mb-2">Delete FAQ Rule?</h3>
-                        <p className="text-xs text-text-secondary mb-6 leading-relaxed">
+                        <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete FAQ Rule?</h3>
+                        <p className="text-xs text-text-secondary mb-6 leading-relaxed font-sans">
                             Are you sure you want to delete this FAQ rule? This will remove the instant cached response mapping.
                         </p>
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={() => setFaqToDelete(null)}
-                                className="px-4 py-2 bg-button-secondary hover:bg-white/10 border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors"
+                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                             >
                                 Cancel
                             </button>
@@ -1045,7 +1045,7 @@ export default function AdminPage() {
                                     setFaqToDelete(null);
                                     await confirmDeleteFaq(id);
                                 }}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors"
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                             >
                                 Delete
                             </button>
@@ -1058,20 +1058,20 @@ export default function AdminPage() {
         {/* Custom Deletion Confirmation Modal for indexed documents */}
         {fileToDelete !== null && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-card-background border border-border-default w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl relative font-sans">
+                <div className="bg-card-background border border-border-default w-full max-w-xs rounded-2xl overflow-hidden shadow-md relative font-sans">
                     <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
                     <div className="p-6 text-center">
                         <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
                             <Trash2 size={20} />
                         </div>
-                        <h3 className="text-base font-semibold text-text-primary mb-2">Delete Document?</h3>
-                        <p className="text-xs text-text-secondary mb-6 leading-relaxed break-all px-2" title={fileToDelete}>
+                        <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete Document?</h3>
+                        <p className="text-xs text-text-secondary mb-6 leading-relaxed break-all px-2 font-sans" title={fileToDelete}>
                             Are you sure you want to delete "{fileToDelete}"? This cannot be undone.
                         </p>
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={() => setFileToDelete(null)}
-                                className="px-4 py-2 bg-button-secondary hover:bg-white/10 border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors"
+                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                             >
                                 Cancel
                             </button>
@@ -1081,7 +1081,7 @@ export default function AdminPage() {
                                     setFileToDelete(null);
                                     await confirmDeleteFile(fname);
                                 }}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors"
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                             >
                                 Delete
                             </button>
@@ -1095,19 +1095,19 @@ export default function AdminPage() {
         {isSettingsOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex justify-end animate-in fade-in duration-300">
                 <div 
-                    className="bg-card-background border-l border-border-default w-full max-w-xl h-full flex flex-col shadow-2xl relative animate-in slide-in-from-right duration-300 font-sans"
+                    className="bg-card-background border-l border-border-default w-full max-w-xl h-full flex flex-col shadow-md relative animate-in slide-in-from-right duration-300 font-sans"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-blue-500 to-cyan-400"></div>
                     
                     <div className="p-6 border-b border-border-default flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2 font-sans">
                             <Settings className="text-purple-400 font-bold" size={20} />
                             Manage RAG System Settings
                         </h3>
                         <button 
                             onClick={() => setIsSettingsOpen(false)}
-                            className="p-1 hover:bg-button-secondary rounded-lg text-text-secondary hover:text-text-primary transition-all"
+                            className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                         >
                             <X size={18} />
                         </button>
@@ -1116,32 +1116,32 @@ export default function AdminPage() {
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                         {/* RAG Parameters */}
                         <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider">RAG Chunking & Retrieval</h4>
+                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider font-sans">RAG Chunking & Retrieval</h4>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1">Chunk Size (chars)</label>
+                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Chunk Size (chars)</label>
                                     <input
                                         type="number"
                                         value={chunkSize}
                                         onChange={(e) => setChunkSize(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-lg text-text-primary text-sm focus:outline-none focus:border-purple-500 font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1">Chunk Overlap (chars)</label>
+                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Chunk Overlap (chars)</label>
                                     <input
                                         type="number"
                                         value={chunkOverlap}
                                         onChange={(e) => setChunkOverlap(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-lg text-text-primary text-sm focus:outline-none focus:border-purple-500 font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1">LLM Temperature</label>
+                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">LLM Temperature</label>
                                     <input
                                         type="number"
                                         step="0.1"
@@ -1149,23 +1149,23 @@ export default function AdminPage() {
                                         max="2"
                                         value={temperature}
                                         onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-lg text-text-primary text-sm focus:outline-none focus:border-purple-500 font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1">Top-K Retrieval</label>
+                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Top-K Retrieval</label>
                                     <input
                                         type="number"
                                         value={topK}
                                         onChange={(e) => setTopK(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-lg text-text-primary text-sm focus:outline-none focus:border-purple-500 font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1">Similarity Threshold</label>
+                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Similarity Threshold</label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -1173,16 +1173,16 @@ export default function AdminPage() {
                                         max="1"
                                         value={similarityThreshold}
                                         onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-lg text-text-primary text-sm focus:outline-none focus:border-purple-500 font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1">Max Context Chunks</label>
+                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Max Context Chunks</label>
                                     <input
                                         type="number"
                                         value={maxContextChunks}
                                         onChange={(e) => setMaxContextChunks(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-lg text-text-primary text-sm focus:outline-none focus:border-purple-500 font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                             </div>
@@ -1190,7 +1190,7 @@ export default function AdminPage() {
 
                         {/* Feature Toggles */}
                         <div className="space-y-3.5 pt-2">
-                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider">Feature Toggles</h4>
+                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider font-sans">Feature Toggles</h4>
                             
                             <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
                                 <div>
@@ -1201,7 +1201,7 @@ export default function AdminPage() {
                                     type="checkbox"
                                     checked={enableFaqRouter}
                                     onChange={(e) => setEnableFaqRouter(e.target.checked)}
-                                    className="w-4 h-4 accent-purple-600 cursor-pointer"
+                                    className="w-4 h-4 accent-purple-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
                                 />
                             </div>
 
@@ -1214,7 +1214,7 @@ export default function AdminPage() {
                                     type="checkbox"
                                     checked={enableWebSearch}
                                     onChange={(e) => setEnableWebSearch(e.target.checked)}
-                                    className="w-4 h-4 accent-purple-600 cursor-pointer"
+                                    className="w-4 h-4 accent-purple-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
                                 />
                             </div>
 
@@ -1227,22 +1227,22 @@ export default function AdminPage() {
                                     type="checkbox"
                                     checked={enableFailedLogging}
                                     onChange={(e) => setEnableFailedLogging(e.target.checked)}
-                                    className="w-4 h-4 accent-purple-600 cursor-pointer"
+                                    className="w-4 h-4 accent-purple-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
                                 />
                             </div>
                         </div>
 
                         {/* System Prompt Editor */}
                         <div className="space-y-2 pt-2">
-                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider">System Prompt Editor</h4>
-                            <p className="text-xs text-text-secondary leading-relaxed">
+                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider font-sans">System Prompt Editor</h4>
+                            <p className="text-xs text-text-secondary leading-relaxed font-sans">
                                 Customize Valar's RAG instructions. Make sure to keep the required placeholders <code className="text-purple-300 font-semibold">{`{context}`}</code> and <code className="text-purple-300 font-semibold">{`{question}`}</code>.
                             </p>
                             <textarea
                                 rows={10}
                                 value={systemPrompt}
                                 onChange={(e) => setSystemPrompt(e.target.value)}
-                                className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-xs font-mono leading-relaxed focus:outline-none focus:border-purple-500 resize-none custom-scrollbar"
+                                className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-xs font-mono leading-relaxed focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none resize-none custom-scrollbar"
                             />
                         </div>
                     </div>
@@ -1250,19 +1250,19 @@ export default function AdminPage() {
                     <div className="p-6 border-t border-border-default flex gap-3 justify-end shrink-0">
                         <button
                             onClick={handleResetSettings}
-                            className="px-4 py-2 bg-button-secondary hover:bg-white/10 border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer"
+                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans"
                         >
                             Reset to Default
                         </button>
                         <button
                             onClick={() => setIsSettingsOpen(false)}
-                            className="px-4 py-2 bg-button-secondary hover:bg-white/10 border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer"
+                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSaveSettings}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer font-sans"
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer font-sans focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
                         >
                             Save Changes
                         </button>
@@ -1275,7 +1275,7 @@ export default function AdminPage() {
         {toast && (
             <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
                 <div className={cn(
-                    "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-2xl backdrop-blur-md",
+                    "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-md backdrop-blur-md",
                     toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
                     toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
                     "bg-card-background border-border-default text-text-primary"
@@ -1284,7 +1284,7 @@ export default function AdminPage() {
                      toast.type === 'error' ? <AlertCircle size={16} className="text-red-400" /> : 
                      <Loader2 size={16} className="animate-spin text-purple-400" />}
                     <span className="text-xs font-semibold">{toast.message}</span>
-                    <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded transition-colors text-text-secondary hover:text-text-primary">
+                    <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer">
                         <X size={12} />
                     </button>
                 </div>

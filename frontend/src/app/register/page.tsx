@@ -39,18 +39,18 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#121212] relative overflow-hidden font-sans py-12">
+        <div className="flex min-h-screen items-center justify-center bg-bg-primary relative overflow-hidden font-sans py-12 text-text-primary">
             {/* Background Accents */}
             <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
             <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none"></div>
 
             <div className="w-full max-w-md p-8 md:p-10 z-10">
                 <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-transform hover:scale-105 duration-300">
-                        <Bot size={32} className="text-[#121212]" />
+                    <div className="w-16 h-16 bg-card-background border border-border-default rounded-full flex items-center justify-center mb-6 shadow-md transition-transform hover:scale-105 duration-300">
+                        <Bot size={32} className="text-text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Create an account</h2>
-                    <p className="text-gray-400 mt-2 text-sm font-medium">Join Valar, the Document Support Chatbot</p>
+                    <h2 className="text-3xl font-bold text-text-primary tracking-tight">Create an account</h2>
+                    <p className="text-text-secondary mt-2 text-sm font-medium">Join Valar, the Document Support Chatbot</p>
                 </div>
 
                 <form onSubmit={handleRegister} className="space-y-6">
@@ -62,23 +62,23 @@ export default function RegisterPage() {
 
                     <div className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Username</label>
+                            <label className="block text-sm font-medium text-text-secondary mb-2 ml-1">Username</label>
                             <input
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full p-4 bg-[#1e1e1e] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all shadow-inner text-[15px]"
+                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all shadow-inner text-[15px] font-sans outline-none font-medium"
                                 placeholder="Choose a username"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Password</label>
+                            <label className="block text-sm font-medium text-text-secondary mb-2 ml-1">Password</label>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full p-4 bg-[#1e1e1e] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all shadow-inner text-[15px] tracking-wide"
+                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all shadow-inner text-[15px] tracking-wide font-sans outline-none font-medium"
                                 placeholder="Create a password"
                                 required
                             />
@@ -90,7 +90,7 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={isLoading || !username || !password}
-                            className="w-full py-4 px-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:scale-100 disabled:shadow-none"
+                            className="w-full py-4 px-4 bg-text-primary text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm hover:shadow-md font-sans focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                         >
                             {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
                                 <>
@@ -103,9 +103,9 @@ export default function RegisterPage() {
                 </form>
 
                 <div className="text-center mt-10">
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         Already have an account?{' '}
-                        <a href="/login" className="text-white hover:text-gray-200 underline underline-offset-4 decoration-white/30 hover:decoration-white/80 font-medium transition-all">
+                        <a href="/login" className="text-text-primary hover:text-text-secondary underline underline-offset-4 decoration-border-default font-semibold transition-all focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none rounded px-0.5 outline-none">
                             Log in
                         </a>
                     </p>

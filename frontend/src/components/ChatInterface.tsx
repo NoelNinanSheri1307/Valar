@@ -482,37 +482,37 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
         return (
             <div className="flex flex-col w-full min-w-0">
-                <div className="flex-1 text-[15px] leading-relaxed break-words mt-1.5 md:mt-2 text-gray-200 space-y-4 w-full">
+                <div className="flex-1 text-[15px] leading-relaxed break-words mt-1.5 md:mt-2 text-text-primary space-y-4 w-full">
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
                             ul: (props) => <ul className="list-disc pl-6 space-y-1 mb-4" {...props} />,
                             ol: (props) => <ol className="list-decimal pl-6 space-y-1 mb-4" {...props} />,
-                            li: (props) => <li className="pl-1 marker:text-gray-500" {...props} />,
-                            h1: (props) => <h1 className="text-2xl font-bold mt-6 mb-3 text-white" {...props} />,
-                            h2: (props) => <h2 className="text-xl font-bold mt-5 mb-3 text-white pb-1 border-b border-white/10" {...props} />,
-                            h3: (props) => <h3 className="text-lg font-bold mt-4 mb-2 text-white" {...props} />,
+                            li: (props) => <li className="pl-1 marker:text-text-secondary/75" {...props} />,
+                            h1: (props) => <h1 className="text-2xl font-bold mt-6 mb-3 text-text-primary" {...props} />,
+                            h2: (props) => <h2 className="text-xl font-bold mt-5 mb-3 text-text-primary pb-1 border-b border-border-default" {...props} />,
+                            h3: (props) => <h3 className="text-lg font-bold mt-4 mb-2 text-text-primary" {...props} />,
                             p: (props) => <p className="mb-4 last:mb-0 leading-relaxed" {...props} />,
-                            a: (props) => <a className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors" target="_blank" rel="noreferrer" {...props} />,
+                            a: (props) => <a className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-350 underline underline-offset-2 transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 rounded px-0.5 outline-none" target="_blank" rel="noreferrer" {...props} />,
                             code: ({ className, children, ...props }) => {
                                 const match = /language-(\w+)/.exec(className || '')
                                 return match ? (
-                                    <pre className="block bg-[#121212] p-4 rounded-xl text-sm font-mono my-4 overflow-x-auto border border-white/5 shadow-inner max-w-full">
-                                        <code className={cn("text-gray-300", className)} {...props as any}>
+                                    <pre className="block bg-bg-tertiary p-4 rounded-xl text-sm font-mono my-4 overflow-x-auto border border-border-default shadow-sm max-w-full">
+                                        <code className={cn("text-text-primary", className)} {...props as any}>
                                             {children}
                                         </code>
                                     </pre>
                                 ) : (
-                                    <code className="bg-white/10 rounded-md px-1.5 py-0.5 text-[0.9em] font-mono text-purple-300" {...props as any}>
+                                    <code className="bg-button-secondary border border-border-default rounded-md px-1.5 py-0.5 text-[0.9em] font-mono text-purple-600 dark:text-purple-300" {...props as any}>
                                         {children}
                                     </code>
                                 )
                             },
-                            strong: (props) => <strong className="font-semibold text-white" {...props} />,
-                            blockquote: (props) => <blockquote className="border-l-2 border-purple-500/50 pl-4 py-1 italic text-gray-400 my-4 bg-purple-500/5 rounded-r-lg" {...props} />,
-                            table: (props) => <div className="w-full overflow-x-auto my-4 max-w-full"><table className="w-full text-sm text-left border-collapse border border-white/10 rounded-lg overflow-hidden" {...props} /></div>,
-                            th: (props) => <th className="bg-[#2f2f2f] p-3 border-b border-white/10 font-semibold text-gray-200" {...props} />,
-                            td: (props) => <td className="p-3 border-b border-white/5 last:border-0" {...props} />,
+                            strong: (props) => <strong className="font-semibold text-text-primary" {...props} />,
+                            blockquote: (props) => <blockquote className="border-l-2 border-purple-500/50 pl-4 py-1 italic text-text-secondary my-4 bg-purple-500/5 rounded-r-lg" {...props} />,
+                            table: (props) => <div className="w-full overflow-x-auto my-4 max-w-full"><table className="w-full text-sm text-left border-collapse border border-border-default rounded-xl overflow-hidden" {...props} /></div>,
+                            th: (props) => <th className="bg-bg-tertiary p-3 border-b border-border-default font-semibold text-text-primary" {...props} />,
+                            td: (props) => <td className="p-3 border-b border-border-default last:border-0" {...props} />,
                         }}
                     >
                         {mainContent.replace(/\[\d+\]/g, '')}
@@ -531,19 +531,19 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     }
                     return (
                         <div className="mt-3 pb-1 text-xs flex items-center gap-1.5 font-sans font-medium">
-                            <span className="text-gray-400">Retrieval Confidence:</span>
+                            <span className="text-text-secondary">Retrieval Confidence:</span>
                             <span className={cn("px-2 py-0.5 rounded text-[10px] uppercase font-bold", colorClass)}>
                                 {label}
                             </span>
-                            <span className="text-gray-500 font-mono">({score.toFixed(4)})</span>
+                            <span className="text-text-secondary opacity-60 font-mono">({score.toFixed(4)})</span>
                         </div>
                     );
                 })()}
 
                 {sources.length > 0 && (
-                    <div className="w-full mt-5 border-t border-white/10 pt-4">
-                        <div className="text-xs font-semibold text-gray-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                            <Globe size={13} className="text-gray-400" />
+                    <div className="w-full mt-5 border-t border-border-default pt-4">
+                        <div className="text-xs font-semibold text-text-secondary mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+                            <Globe size={13} className="text-text-secondary" />
                             Sources
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -611,7 +611,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                 <div className="flex flex-col h-full p-3 w-[300px]">
                     <div className="flex items-center justify-between mb-4 md:hidden text-text-secondary px-1 pt-1">
                         <span className="font-semibold text-text-primary">Menu</span>
-                        <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-button-secondary rounded-md transition-colors" title="Close Sidebar">
+                        <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-button-secondary rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none" title="Close Sidebar">
                             <X size={20} />
                         </button>
                     </div>
@@ -622,7 +622,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             setCurrentSessionId(null);
                             if (window.innerWidth < 768) setSidebarOpen(false);
                         }}
-                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-button-secondary transition-colors text-sm text-text-primary border border-border-default shadow-sm mb-4"
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-bg-tertiary transition-all text-sm text-text-primary border border-border-default shadow-sm mb-4 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-medium cursor-pointer"
                     >
                         <Plus size={16} />
                         New chat
@@ -635,7 +635,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             placeholder="Search conversations..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-text-secondary transition-all font-sans placeholder-text-secondary/60"
+                            className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-xl focus:outline-none text-text-primary focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-sans placeholder-text-secondary/60 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none"
                         />
                     </div>
 
@@ -650,13 +650,13 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                         key={session.id}
                                         onClick={() => loadSession(session.id)}
                                         className={cn(
-                                            "group px-3 py-2.5 text-sm truncate rounded-lg cursor-pointer transition-all mb-1 flex items-center gap-3 border",
+                                            "group px-3 py-2.5 text-sm truncate rounded-xl cursor-pointer transition-all mb-1 flex items-center gap-3 border focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none",
                                             currentSessionId === session.id
-                                                ? "bg-button-secondary text-text-primary font-medium border-border-default shadow-sm"
-                                                : "text-text-secondary hover:bg-button-secondary border-transparent"
+                                                ? "bg-purple-500/10 text-purple-600 dark:text-purple-300 font-semibold border-purple-500/20 shadow-sm"
+                                                : "text-text-secondary hover:text-text-primary hover:bg-bg-tertiary border-transparent"
                                         )}
                                     >
-                                        <MessageSquare size={14} className={currentSessionId === session.id ? "text-text-primary" : "text-text-secondary"} />
+                                        <MessageSquare size={14} className={currentSessionId === session.id ? "text-purple-500" : "text-text-secondary"} />
                                         <span className="truncate flex-1">{session.title}</span>
                                         
                                         <button 
@@ -664,7 +664,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                 e.stopPropagation();
                                                 setSessionToDelete(session.id);
                                             }}
-                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-button-secondary rounded text-text-secondary hover:text-red-400 transition-all shrink-0"
+                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-button-secondary rounded-lg text-text-secondary hover:text-red-500 transition-all shrink-0 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none"
                                             title="Delete Session"
                                         >
                                             <Trash2 size={12} />
@@ -676,7 +676,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
                     {/* Support Status & Help Indicators */}
                     <div className="border-t border-border-default pt-3 mt-2 space-y-2">
-                        <div className="px-3 py-2 flex items-center justify-between text-[11px] text-text-secondary bg-bg-tertiary rounded-lg border border-border-default">
+                        <div className="px-3 py-2 flex items-center justify-between text-[11px] text-text-secondary bg-bg-tertiary rounded-xl border border-border-default">
                             <span className="flex items-center gap-1.5 font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                                 Support System
@@ -684,8 +684,8 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             <span className="text-text-secondary font-semibold uppercase text-[9px] tracking-wider bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded">Ready</span>
                         </div>
 
-                        <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-button-secondary transition-colors cursor-pointer">
-                            <div className="w-8 h-8 rounded-full bg-text-primary text-bg-primary border border-border-default flex items-center justify-center font-bold text-sm shadow-lg uppercase">
+                        <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-bg-tertiary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none">
+                            <div className="w-8 h-8 rounded-full bg-text-primary text-bg-primary border border-border-default flex items-center justify-center font-bold text-sm shadow-md uppercase">
                                 {profileInitial}
                             </div>
                             <div className="text-sm font-medium text-text-primary truncate max-w-[150px]">
@@ -703,7 +703,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     <div className="flex items-center">
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 hover:bg-button-secondary rounded-lg text-text-secondary hover:text-text-primary transition-colors"
+                            className="p-2 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                             title="Toggle Sidebar"
                         >
                             <Menu size={20} />
@@ -718,7 +718,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     <div className="flex items-center gap-2">
                         <button
                             onClick={toggleTheme}
-                            className="p-1.5 bg-button-secondary hover:bg-white/10 border border-border-default rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center animate-none"
+                            className="p-1.5 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center animate-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                             title={theme === 'dark' ? "Switch to Light Theme" : "Switch to Dark Theme"}
                         >
                             {theme === 'dark' ? (
@@ -730,7 +730,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
                         <button
                             onClick={() => router.push('/ops_admin')}
-                            className="bg-button-secondary text-text-primary px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-white/10 transition-all border border-border-default"
+                            className="bg-button-secondary text-text-primary px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-bg-tertiary transition-all border border-border-default focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                         >
                             Support Dashboard
                         </button>
@@ -739,7 +739,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             <div className="relative">
                                 <button
                                     onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                                    className="p-1.5 bg-button-secondary hover:bg-white/10 border border-border-default rounded-lg text-text-secondary hover:text-text-primary text-xs font-medium transition-all flex items-center gap-1.5"
+                                    className="p-1.5 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-text-secondary hover:text-text-primary text-xs font-medium transition-all flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                     title="Export Session"
                                 >
                                     <Download size={14} />
@@ -747,24 +747,24 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 </button>
                                 
                                 {isExportMenuOpen && (
-                                    <div className="absolute right-0 top-10 w-44 bg-card-background border border-border-default rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="absolute right-0 top-10 w-44 bg-card-background border border-border-default rounded-xl shadow-md py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
                                         <button 
                                             onClick={() => { exportAsMarkdown(messages); setIsExportMenuOpen(false); }}
-                                            className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-button-secondary hover:text-text-primary transition-colors flex items-center gap-2"
+                                            className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-bg-tertiary hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer focus-visible:bg-bg-tertiary outline-none"
                                         >
                                             <Download size={11} className="text-text-secondary" />
                                             Markdown (.md)
                                         </button>
                                         <button 
                                             onClick={() => { exportAsPDF(messages); setIsExportMenuOpen(false); }}
-                                            className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-button-secondary hover:text-text-primary transition-colors flex items-center gap-2"
+                                            className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-bg-tertiary hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer focus-visible:bg-bg-tertiary outline-none"
                                         >
                                             <Download size={11} className="text-text-secondary" />
                                             PDF Document (.pdf)
                                         </button>
                                         <button 
                                             onClick={() => { exportAsPlainText(messages); setIsExportMenuOpen(false); }}
-                                            className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-button-secondary hover:text-text-primary transition-colors flex items-center gap-2"
+                                            className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-bg-tertiary hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer focus-visible:bg-bg-tertiary outline-none"
                                         >
                                             <Download size={11} className="text-text-secondary" />
                                             Plain Text (.txt)
@@ -777,7 +777,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         {messages.length > 0 && (
                             <button
                                 onClick={clearConversation}
-                                className="bg-button-secondary hover:bg-white/10 text-text-primary px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-border-default"
+                                className="bg-button-secondary hover:bg-bg-tertiary text-text-primary px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 border border-border-default focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                 title="Clear current conversation"
                             >
                                 <Trash2 size={14} />
@@ -787,7 +787,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         
                         <button
                             onClick={() => setIsTicketModalOpen(true)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(147,51,234,0.15)]"
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                             title="Raise Support Ticket"
                         >
                             <Ticket size={14} />
@@ -797,41 +797,39 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         {handleLogout && (
                             <button
                                 onClick={handleLogout}
-                                className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-500 hover:text-white transition-all"
+                                className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-red-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer"
                             >
                                 Logout
                             </button>
                         )}
                     </div>
-                </div>
-
-                {/* Messages Area */}
+                </div>                {/* Messages Area */}
                 {messages.length > 0 && (
                     <div className="flex-1 overflow-y-auto custom-scrollbar w-full flex flex-col items-center">
                         <div className="flex flex-col w-full max-w-4xl pb-4 pt-4 px-4 md:px-0">
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={cn("flex w-full mt-6 first:mt-0", msg.role === 'user' ? "justify-end" : "justify-start")}>
                                     {msg.role === 'user' ? (
-                                        <div className="max-w-[85%] md:max-w-[75%] bg-bg-tertiary text-text-primary rounded-3xl px-5 py-3.5 shadow-sm text-[15px] leading-relaxed break-words whitespace-pre-wrap">
+                                        <div className="max-w-[85%] md:max-w-[75%] bg-purple-500/10 text-text-primary border border-purple-500/20 rounded-2xl rounded-tr-none px-5 py-3.5 shadow-sm text-[15px] leading-relaxed break-words whitespace-pre-wrap">
                                             {msg.content}
                                         </div>
                                     ) : (
-                                        <div className="flex gap-4 w-full">
+                                        <div className="flex gap-3 w-full max-w-[90%] md:max-w-[80%]">
                                             <div className="w-8 h-8 md:w-9 md:h-9 bg-card-background rounded-full flex items-center justify-center text-text-primary flex-shrink-0 mt-1 shadow-sm border border-border-default">
                                                 <Bot size={18} />
                                             </div>
-                                            <div className="flex-1 flex flex-col min-w-0">
+                                            <div className="flex-1 flex flex-col min-w-0 bg-card-background border border-border-default rounded-2xl rounded-tl-none p-5 shadow-sm">
                                                 {renderMessageContent(msg.content)}
 
-                                                {/* Assistant Message Actions & Feedback (Placeholder UI) */}
-                                                <div className="flex flex-wrap items-center justify-between mt-3 text-text-secondary opacity-70 border-t border-border-default pt-2 gap-2">
+                                                {/* Assistant Message Actions & Feedback */}
+                                                <div className="flex flex-wrap items-center justify-between mt-4 text-text-secondary opacity-80 border-t border-border-default pt-3 gap-2">
                                                     <div className="flex items-center gap-4">
                                                         <button 
                                                             onClick={() => {
                                                                 navigator.clipboard.writeText(msg.content);
                                                                 showToast("Response copied to clipboard!", "success");
                                                             }}
-                                                            className="text-xs hover:text-text-primary transition-colors flex items-center gap-1"
+                                                            className="text-xs hover:text-text-primary transition-colors flex items-center gap-1.5 font-medium focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none rounded p-0.5 cursor-pointer"
                                                             title="Copy Answer"
                                                         >
                                                             <Copy size={12} />
@@ -841,7 +839,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                             onClick={() => {
                                                                 handleSubmit(undefined, messages[idx - 1]?.content || "");
                                                             }}
-                                                            className="text-xs hover:text-text-primary transition-colors flex items-center gap-1"
+                                                            className="text-xs hover:text-text-primary transition-colors flex items-center gap-1.5 font-medium focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none rounded p-0.5 cursor-pointer"
                                                             title="Retry Response"
                                                         >
                                                             <RotateCcw size={12} />
@@ -854,14 +852,14 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                         <span className="text-[10px] uppercase tracking-wider text-text-secondary opacity-60 font-sans">Was this helpful?</span>
                                                         <button 
                                                             onClick={() => showToast("Feedback saved: Helpful! (Stored in Local Analytics Dashboard)", "success")}
-                                                            className="hover:text-green-400 transition-colors p-1 hover:bg-button-secondary rounded"
+                                                            className="hover:text-green-500 hover:bg-button-secondary transition-colors p-1 rounded focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                                             title="Helpful"
                                                         >
                                                             <ThumbsUp size={13} />
                                                         </button>
                                                         <button 
                                                             onClick={() => showToast("Feedback saved: Not Helpful! (Stored in Local Analytics Dashboard)", "info")}
-                                                            className="hover:text-red-400 transition-colors p-1 hover:bg-button-secondary rounded"
+                                                            className="hover:text-red-500 hover:bg-button-secondary transition-colors p-1 rounded focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                                             title="Not Helpful"
                                                         >
                                                             <ThumbsDown size={13} />
@@ -871,20 +869,20 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
                                                 {/* Smart Contextual Followups (Placeholder UI) */}
                                                 {idx === messages.length - 1 && (
-                                                    <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                        <span className="text-xs text-text-secondary opacity-70 self-center">Follow-ups:</span>
+                                                    <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-border-default pt-3">
+                                                        <span className="text-xs text-text-secondary opacity-80 self-center font-medium">Follow-ups:</span>
                                                         {followUpSuggestions.map((suggestion, suggestionIndex) => (
                                                             <button
                                                                 key={suggestionIndex}
                                                                 onClick={() => setInput(suggestion)}
-                                                                className="text-xs bg-button-secondary border border-border-default rounded-full px-3 py-1 text-text-primary hover:bg-bg-tertiary transition-all font-medium animate-none"
+                                                                className="text-xs bg-button-secondary border border-border-default rounded-xl px-3 py-1.5 text-text-primary hover:bg-bg-tertiary transition-all font-medium focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                                             >
                                                                 {suggestion}
                                                             </button>
                                                         ))}
                                                         <button 
                                                             onClick={() => setIsTicketModalOpen(true)}
-                                                            className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-full px-3 py-1 hover:bg-purple-500/20 transition-all flex items-center gap-1 font-medium"
+                                                            className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-300 rounded-xl px-3 py-1.5 hover:bg-purple-500/20 transition-all flex items-center gap-1.5 font-medium focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                                         >
                                                             <Ticket size={11} />
                                                             Escalate to Ticket
@@ -898,23 +896,23 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             ))}
                             {isLoading && (
                                 <div className="flex w-full mt-6 justify-start">
-                                    <div className="flex gap-4 w-full">
+                                    <div className="flex gap-3 w-full max-w-[90%] md:max-w-[80%]">
                                         <div className="w-8 h-8 md:w-9 md:h-9 bg-card-background rounded-full flex items-center justify-center text-text-primary flex-shrink-0 mt-1 shadow-sm border border-border-default">
                                             <Bot size={18} />
                                         </div>
-                                        <div className="flex flex-col gap-3 w-full max-w-4xl mt-1.5">
+                                        <div className="flex-1 flex flex-col min-w-0 bg-card-background border border-border-default rounded-2xl rounded-tl-none p-5 shadow-sm">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-text-secondary font-medium text-[15px] animate-pulse">Searching sources</span>
-                                                <div className="flex -space-x-2">
-                                                    <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center animate-bounce shadow-sm z-30" style={{ animationDelay: '0ms' }}><Globe size={11} className="text-blue-400" /></div>
-                                                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center animate-bounce shadow-sm z-20" style={{ animationDelay: '150ms' }}><BookOpen size={11} className="text-emerald-400" /></div>
-                                                    <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/50 flex items-center justify-center animate-bounce shadow-sm z-10" style={{ animationDelay: '300ms' }}><HelpCircle size={11} className="text-purple-400" /></div>
+                                                <div className="flex -space-x-1.5">
+                                                    <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center animate-bounce shadow-sm z-30" style={{ animationDelay: '0ms' }}><Globe size={11} className="text-blue-400" /></div>
+                                                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center animate-bounce shadow-sm z-20" style={{ animationDelay: '150ms' }}><BookOpen size={11} className="text-emerald-400" /></div>
+                                                    <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center animate-bounce shadow-sm z-10" style={{ animationDelay: '300ms' }}><HelpCircle size={11} className="text-purple-400" /></div>
                                                 </div>
                                             </div>
-                                            <div className="space-y-2.5 mt-2">
-                                                <div className="h-4 bg-bg-tertiary rounded-md w-full animate-pulse"></div>
-                                                <div className="h-4 bg-bg-tertiary rounded-md w-5/6 animate-pulse"></div>
-                                                <div className="h-4 bg-bg-tertiary rounded-md w-4/6 animate-pulse"></div>
+                                            <div className="space-y-2.5 mt-4">
+                                                <div className="h-3.5 bg-bg-tertiary rounded-md w-full animate-pulse"></div>
+                                                <div className="h-3.5 bg-bg-tertiary rounded-md w-5/6 animate-pulse"></div>
+                                                <div className="h-3.5 bg-bg-tertiary rounded-md w-4/6 animate-pulse"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -930,11 +928,11 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     "w-full px-4 md:px-0 flex flex-col items-center z-20 shrink-0 transition-all duration-500",
                     messages.length === 0 ? "flex-1 justify-center mt-[-8vh]" : "bg-bg-primary pt-4 pb-6 justify-end"
                 )}>
-                    <div className="w-full max-w-5xl relative flex flex-col items-center">
+                    <div className="w-full max-w-5xl relative flex flex-col items-center animate-none">
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center gap-5 mb-8">
                                 <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full animate-in fade-in slide-in-from-top-3 duration-500">
-                                    <span className="text-[11px] font-semibold text-purple-300 tracking-wide uppercase">How it works</span>
+                                    <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-300 tracking-wide uppercase">How it works</span>
                                     <span className="text-[11px] text-text-secondary">Upload docs in Dashboard</span>
                                     <span className="text-text-secondary opacity-60">&#8594;</span>
                                     <span className="text-[11px] text-text-secondary">Ask Valar anything</span>
@@ -953,7 +951,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 to { transform: translate(-50%, -50%) rotate(360deg); }
                             }
                         `}</style>
-                        <div className="relative w-full rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.3)] group overflow-hidden">
+                        <div className="relative w-full rounded-xl shadow-md group overflow-hidden border border-border-default">
                             <div
                                 className={cn(
                                     "absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_40%,var(--text-primary)_100%)] rounded-full z-0 pointer-events-none transition-opacity duration-500",
@@ -962,7 +960,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 style={{ animation: 'spin-slow 3s linear infinite' }}
                             />
 
-                            <div className="relative flex flex-col w-[calc(100%-4px)] bg-input-background group-focus-within:bg-bg-tertiary rounded-[14px] m-[1px] transition-colors duration-300 z-10">
+                            <div className="relative flex flex-col w-[calc(100%-2px)] bg-input-background focus-within:bg-bg-tertiary rounded-xl m-[1px] transition-all duration-300 z-10 focus-within:ring-2 focus-within:ring-purple-500 focus-within:outline-none">
                                 <textarea
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
@@ -973,13 +971,13 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                         }
                                     }}
                                     placeholder={currentPlaceholder + (isDeleting ? "" : "|")}
-                                    className="w-full bg-transparent text-text-primary placeholder-text-secondary/60 resize-none focus:outline-none min-h-[56px] py-4 px-5 text-[15px] custom-scrollbar font-sans"
+                                    className="w-full bg-transparent text-text-primary placeholder-text-secondary/60 resize-none focus:outline-none min-h-[56px] py-4 px-5 text-[15px] custom-scrollbar font-sans outline-none font-medium"
                                     style={{ height: 'auto', minHeight: '56px' }}
                                     rows={1}
                                 />
                                 <div className="flex items-center justify-between px-3 pb-3">
                                     <div className="flex items-center gap-2">
-                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-button-secondary hover:bg-white/10 text-text-secondary hover:text-text-primary transition-colors text-xs font-medium">
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-button-secondary hover:bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors text-xs font-medium focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer border border-border-default">
                                             <Bot size={14} />
                                             Model
                                         </button>
@@ -988,8 +986,8 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                         onClick={() => handleSubmit()}
                                         disabled={!input.trim() || isLoading}
                                         className={cn(
-                                            "p-2 rounded-full transition-all flex items-center justify-center w-8 h-8 outline-none",
-                                            input.trim() && !isLoading ? "bg-text-primary text-bg-primary shadow-md hover:scale-105" : "bg-button-secondary text-text-secondary/50 cursor-not-allowed"
+                                            "p-2 rounded-xl transition-all flex items-center justify-center w-8 h-8 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer",
+                                            input.trim() && !isLoading ? "bg-text-primary text-bg-primary shadow-sm hover:scale-105" : "bg-button-secondary text-text-secondary/50 cursor-not-allowed border border-border-default"
                                         )}
                                     >
                                         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} className="ml-0.5" />}
@@ -1004,18 +1002,12 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     <button
                                         key={idx}
                                         onClick={() => handleSubmit(undefined, query.text)}
-                                        className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-bg-tertiary border border-border-default hover:bg-bg-primary hover:border-text-secondary text-text-secondary hover:text-text-primary transition-all text-[13px] font-medium shadow-sm hover:shadow-md"
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-bg-tertiary border border-border-default hover:bg-bg-primary hover:border-text-secondary text-text-secondary hover:text-text-primary transition-all text-[13px] font-medium shadow-sm hover:shadow-md focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                     >
                                         <query.icon size={15} className="text-text-secondary" />
                                         {query.label}
                                     </button>
                                 ))}
-                            </div>
-                        )}
-
-                        {messages.length > 0 && (
-                            <div className="text-center mt-3 text-xs text-text-secondary opacity-60 font-medium tracking-wide">
-                                Valar can make mistakes. Consider checking important information.
                             </div>
                         )}
                     </div>
@@ -1025,7 +1017,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             {/* Escalation Ticket Modal */}
             {isTicketModalOpen && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-card-background border border-border-default w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative">
+                    <div className="bg-card-background border border-border-default w-full max-w-lg rounded-2xl overflow-hidden shadow-md relative">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
                         
                         <div className="p-6 font-sans">
@@ -1036,7 +1028,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 </h3>
                                 <button 
                                     onClick={() => setIsTicketModalOpen(false)}
-                                    className="p-1 hover:bg-button-secondary rounded-lg text-text-secondary hover:text-text-primary transition-all"
+                                    className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
                                 >
                                     <X size={18} />
                                 </button>
@@ -1051,22 +1043,22 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             ) : (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1">Subject</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1 font-semibold">Subject</label>
                                         <input
                                             type="text"
                                             value={ticketSubject}
                                             onChange={(e) => setTicketSubject(e.target.value)}
                                             placeholder="Briefly describe the support request..."
-                                            className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 text-sm focus:outline-none focus:border-purple-500 transition-all font-sans"
+                                            className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all font-sans font-medium"
                                         />
                                     </div>
                                     
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1">Priority Level</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1 font-semibold">Priority Level</label>
                                         <select
                                             value={ticketPriority}
                                             onChange={(e) => setTicketPriority(e.target.value)}
-                                            className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 transition-all font-sans font-medium"
+                                            className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all font-sans font-semibold cursor-pointer"
                                         >
                                             <option value="Low">Low Priority</option>
                                             <option value="Medium">Medium Priority</option>
@@ -1076,12 +1068,12 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1">Detailed Description</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1 font-semibold">Detailed Description</label>
                                         <textarea
                                             value={ticketDescription}
                                             onChange={(e) => setTicketDescription(e.target.value)}
                                             placeholder="Provide system errors, steps to reproduce, or details to assist support staff..."
-                                            className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 text-sm focus:outline-none focus:border-purple-500 transition-all font-sans min-h-[100px] resize-none"
+                                            className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all font-sans min-h-[100px] resize-none font-medium"
                                             rows={4}
                                         />
                                     </div>
@@ -1089,7 +1081,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     <div className="pt-2 flex justify-end gap-3">
                                         <button
                                             onClick={() => setIsTicketModalOpen(false)}
-                                            className="px-4 py-2 bg-button-secondary hover:bg-white/10 border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors"
+                                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                                         >
                                             Cancel
                                         </button>
@@ -1121,7 +1113,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                     setTicketDescription("");
                                                 }, 2000);
                                             }}
-                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-medium transition-colors font-semibold"
+                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-medium transition-colors font-semibold focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                                         >
                                             Submit Ticket
                                         </button>
@@ -1136,20 +1128,20 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             {/* Custom Deletion Confirmation Modal */}
             {sessionToDelete !== null && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-card-background border border-border-default w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative font-sans">
+                    <div className="bg-card-background border border-border-default w-full max-w-sm rounded-2xl overflow-hidden shadow-md relative font-sans">
                         <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
                         <div className="p-6 text-center">
                             <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
                                 <Trash2 size={20} />
                             </div>
-                            <h3 className="text-base font-semibold text-text-primary mb-2">Delete Conversation?</h3>
-                            <p className="text-xs text-text-secondary mb-6 leading-relaxed">
+                            <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete Conversation?</h3>
+                            <p className="text-xs text-text-secondary mb-6 leading-relaxed font-sans">
                                 Are you sure you want to delete this conversation? This action cannot be undone and will permanently remove all messages.
                             </p>
                             <div className="flex gap-3 justify-center">
                                 <button
                                     onClick={() => setSessionToDelete(null)}
-                                    className="px-4 py-2 bg-button-secondary hover:bg-white/10 border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors"
+                                    className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                                 >
                                     Cancel
                                 </button>
@@ -1159,7 +1151,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                         setSessionToDelete(null);
                                         await confirmDeleteSession(id);
                                     }}
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium font-semibold transition-colors"
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
                                 >
                                     Delete
                                 </button>
@@ -1173,13 +1165,13 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             {toast && (
                 <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
                     <div className={cn(
-                        "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-2xl backdrop-blur-md",
+                        "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-md backdrop-blur-md",
                         toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
                         toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
                         "bg-card-background border-border-default text-text-primary"
                     )}>
                         <span className="text-xs font-semibold">{toast.message}</span>
-                        <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded transition-colors text-text-secondary hover:text-text-primary">
+                        <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer">
                             <X size={12} />
                         </button>
                     </div>
