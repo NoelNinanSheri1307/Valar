@@ -75,6 +75,13 @@ def ingest_document(file_path: str):
       .docx -> Docx2txtLoader (python-docx + docx2txt)
       .doc  -> Docx2txtLoader (best-effort; works for most modern .doc files)
     """
+    from settings_manager import load_settings
+    settings = load_settings()
+    local_text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=settings.get("chunk_size", 1000),
+        chunk_overlap=settings.get("chunk_overlap", 200),
+    )
+
     ext = os.path.splitext(file_path)[1].lower()
 
     if ext == ".pdf":
@@ -88,7 +95,7 @@ def ingest_document(file_path: str):
         raise ValueError(f"Unsupported file type: {ext}")
 
     docs = loader.load()
-    splits = text_splitter.split_documents(docs)
+    splits = local_text_splitter.split_documents(docs)
     if splits:
         print(f"Metadata stored during ingestion (first chunk): {splits[0].metadata}")
     vectorstore.add_documents(documents=splits)
@@ -99,9 +106,15 @@ def ingest_document(file_path: str):
 # =========================================================
 
 def retrieve_context(question: str) -> tuple[str | None, list[str], float]:
+    from settings_manager import load_settings
+    settings = load_settings()
+    k = settings.get("top_k", 4)
+    threshold = settings.get("similarity_threshold", 0.15)
+    max_context = settings.get("max_context_chunks", 4)
+
     results = vectorstore.similarity_search_with_relevance_scores(
         question,
-        k=4,
+        k=k,
     )
 
     highest_score = 0.0
@@ -111,11 +124,14 @@ def retrieve_context(question: str) -> tuple[str | None, list[str], float]:
         highest_score = results[0][1]
 
     relevant_docs = [
-        doc for doc, score in results if score >= RELEVANCE_THRESHOLD
+        doc for doc, score in results if score >= threshold
     ]
 
+    # Limit context chunks to max_context_chunks
+    relevant_docs = relevant_docs[:max_context]
+
     for doc, score in results:
-        if score < RELEVANCE_THRESHOLD:
+        if score < threshold:
             continue
 
         source_path = doc.metadata.get("source") if hasattr(doc, "metadata") else None
@@ -250,9 +266,13 @@ def exa_search_fallback(question: str) -> str:
 # RAG FUNCTION
 # =========================================================
 
-def rag_answer(question: str, db: Session = None) -> str:
+def rag_answer(question: str, db: Session = None, username: str = None) -> str:
+    from settings_manager import load_settings, DEFAULT_SETTINGS
+    from activity_logger import log_activity
+    settings = load_settings()
+
     # 1. FAQ check
-    if db is not None:
+    if settings.get("enable_faq_router", True) and db is not None:
         try:
             active_rules = db.query(FAQRule).filter(FAQRule.is_active == True).all()
             matches = []
@@ -263,13 +283,36 @@ def rag_answer(question: str, db: Session = None) -> str:
             if matches:
                 # Prefer the longest matching keyword
                 best_match = max(matches, key=lambda r: len(r.keyword))
-                return best_match.response
+                return best_match.response + "\n\n<!-- score: 1.0 -->"
         except Exception as e:
             print(f"Error matching FAQ rules: {e}")
 
     # 2. Proceed with RAG pipeline
     context, source_labels, highest_score = retrieve_context(question)
-    retrieval_failed = (context is None or highest_score < RELEVANCE_THRESHOLD)
+    threshold = settings.get("similarity_threshold", 0.15)
+    retrieval_failed = (context is None or highest_score < threshold)
+
+    # Load system prompt and ensure placeholders are present
+    sys_prompt = settings.get("system_prompt", DEFAULT_SETTINGS["system_prompt"])
+    if "{context}" not in sys_prompt:
+        sys_prompt += "\n\nContext:\n{context}"
+    if "{question}" not in sys_prompt:
+        sys_prompt += "\n\nUser Question:\n{question}"
+
+    custom_prompt = PromptTemplate(
+        input_variables=["context", "question"],
+        template=sys_prompt
+    )
+
+    # Initialize dynamic temperature
+    temp = settings.get("temperature", 0.7)
+    llm_run = ChatOpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1",
+        model="openai/gpt-oss-120b",
+        max_tokens=1000,
+        temperature=temp
+    )
 
     if context is None:
         answer = "Sorry, I don't know based on the given context."
@@ -279,8 +322,8 @@ def rag_answer(question: str, db: Session = None) -> str:
                 "context": lambda _: context,
                 "question": RunnablePassthrough(),
             }
-            | prompt
-            | llm
+            | custom_prompt
+            | llm_run
             | StrOutputParser()
         )
         answer = chain.invoke(question)
@@ -308,7 +351,7 @@ def rag_answer(question: str, db: Session = None) -> str:
     fallback_triggered = False
     # If the response indicates lack of context knowledge, completely override it with the fallback
     if any(trigger in answer_lower for trigger in fallback_triggers):
-        if is_support_relevant(question):
+        if settings.get("enable_web_search", True) and is_support_relevant(question):
             extended_query = f"{question} technical support troubleshooting manual"
             try:
                 fallback_answer = exa_search_fallback(extended_query)
@@ -317,18 +360,23 @@ def rag_answer(question: str, db: Session = None) -> str:
             except Exception as e:
                 print(f"Exa search fallback failed: {e}")
 
-    # 3. Log FailedRetrieval if retrieval_failed
+    # 3. Log FailedRetrieval if retrieval_failed and logging is enabled
     if retrieval_failed and db is not None:
-        try:
-            failed_log = FailedRetrieval(
-                query_text=question,
-                highest_score=highest_score,
-                fallback_triggered=fallback_triggered
-            )
-            db.add(failed_log)
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            print(f"Failed to log retrieval analytics: {e}")
+        if settings.get("enable_failed_logging", True):
+            try:
+                failed_log = FailedRetrieval(
+                    query_text=question,
+                    highest_score=highest_score,
+                    fallback_triggered=fallback_triggered
+                )
+                db.add(failed_log)
+                db.commit()
+                # Log to Activity logs
+                log_activity(username or "System", "Failed Retrieval Logged", question)
+            except Exception as e:
+                db.rollback()
+                print(f"Failed to log retrieval analytics: {e}")
 
-    return answer
+    # Append confidence score comment for the frontend
+    # If FAQ route matched, score is 1.0, otherwise we use the retrieval score
+    return f"{answer}\n\n<!-- score: {highest_score:.4f} -->"

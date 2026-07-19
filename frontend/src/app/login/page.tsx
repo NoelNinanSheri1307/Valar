@@ -52,18 +52,18 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#121212] relative overflow-hidden font-sans">
+        <div className="flex min-h-screen items-center justify-center bg-bg-primary relative overflow-hidden font-sans text-text-primary">
             {/* Background Accents */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
 
             <div className="w-full max-w-md p-8 md:p-10 z-10">
                 <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-transform hover:scale-105 duration-300">
-                        <Bot size={32} className="text-[#121212]" />
+                    <div className="w-16 h-16 bg-card-background border border-border-default rounded-full flex items-center justify-center mb-6 shadow-xl transition-transform hover:scale-105 duration-300">
+                        <Bot size={32} className="text-text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Welcome back</h2>
-                    <p className="text-gray-400 mt-2 text-sm font-medium">Sign in to Valar to continue</p>
+                    <h2 className="text-3xl font-bold text-text-primary tracking-tight">Welcome back</h2>
+                    <p className="text-text-secondary mt-2 text-sm font-medium">Sign in to Valar to continue</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
@@ -75,26 +75,26 @@ export default function LoginPage() {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Username</label>
+                            <label className="block text-sm font-medium text-text-secondary mb-2 ml-1">Username</label>
                             <input
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full p-4 bg-[#1e1e1e] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all shadow-inner text-[15px]"
+                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-text-secondary/50 transition-all shadow-inner text-[15px] font-sans"
                                 placeholder="Enter your username"
                                 required
                             />
                         </div>
                         <div>
                             <div className="flex justify-between items-center mb-2 ml-1 mr-1">
-                                <label className="block text-sm font-medium text-gray-300">Password</label>
-                                <a href="#" className="text-xs text-gray-500 hover:text-white transition-colors">Forgot password?</a>
+                                <label className="block text-sm font-medium text-text-secondary font-sans">Password</label>
+                                <a href="#" className="text-xs text-text-secondary opacity-70 hover:text-text-primary transition-colors font-sans">Forgot password?</a>
                             </div>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full p-4 bg-[#1e1e1e] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all shadow-inner text-[15px] tracking-wide"
+                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-text-secondary/50 transition-all shadow-inner text-[15px] tracking-wide font-sans"
                                 placeholder="••••••••"
                                 required
                             />
@@ -105,7 +105,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading || !username || !password}
-                            className="w-full py-4 px-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:scale-100 disabled:shadow-none"
+                            className="w-full py-4 px-4 bg-text-primary text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md font-sans"
                         >
                             {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
                                 <>
@@ -118,9 +118,9 @@ export default function LoginPage() {
                 </form>
 
                 <div className="text-center mt-10">
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         Don&apos;t have an account?{' '}
-                        <a href="/register" className="text-white hover:text-gray-200 underline underline-offset-4 decoration-white/30 hover:decoration-white/80 font-medium transition-all">
+                        <a href="/register" className="text-text-primary hover:text-text-secondary underline underline-offset-4 decoration-border-default font-medium transition-all">
                             Sign up
                         </a>
                     </p>

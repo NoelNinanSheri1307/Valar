@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, X, Trash2 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -13,17 +13,22 @@ interface UploadProps {
     onUploadSuccess?: () => void;
 }
 
+interface QueueItem {
+    id: string;
+    file: File;
+    status: 'idle' | 'uploading' | 'success' | 'error';
+    progress: number;
+    error?: string;
+}
+
 export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
-    const [file, setFile] = useState<File | null>(null);
-    const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-    const [errorMessage, setErrorMessage] = useState('');
+    const [uploadQueue, setUploadQueue] = useState<QueueItem[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            setFile(e.target.files[0]);
-            setStatus('idle');
+            addFilesToQueue(Array.from(e.target.files));
         }
     };
 
@@ -41,61 +46,108 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
         e.preventDefault();
         setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            setFile(e.dataTransfer.files[0]);
-            setStatus('idle');
+            addFilesToQueue(Array.from(e.dataTransfer.files));
         }
     };
 
-    const handleUpload = async () => {
-        if (!file) return;
+    const addFilesToQueue = (files: File[]) => {
+        const newItems: QueueItem[] = files.map(file => ({
+            id: `${file.name}-${Date.now()}-${Math.random()}`,
+            file,
+            status: 'idle',
+            progress: 0
+        }));
+        setUploadQueue(prev => [...prev, ...newItems]);
+    };
 
-        setStatus('uploading');
+    const startUpload = (id: string, file: File) => {
+        setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'uploading' } : item));
+
+        const xhr = new XMLHttpRequest();
         const formData = new FormData();
         formData.append('file', file);
 
-        const token = localStorage.getItem('token');
-
-        try {
-            const res = await fetch('http://localhost:8000/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || 'Upload failed');
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const progress = Math.round((e.loaded / e.total) * 100);
+                setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, progress } : item));
             }
+        });
 
-            setStatus('success');
-            if (onUploadSuccess) onUploadSuccess();
-            setTimeout(() => {
-                setFile(null);
-                setStatus('idle');
-            }, 3000);
-        } catch (err: unknown) {
-            setStatus('error');
-            setErrorMessage(err instanceof Error ? err.message : 'Failed to upload and index document.');
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'success', progress: 100 } : item));
+                if (onUploadSuccess) onUploadSuccess();
+            } else {
+                let error = 'Upload failed';
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    error = res.detail || error;
+                } catch (e) {}
+                setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'error', error } : item));
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'error', error: 'Network error' } : item));
+        });
+
+        xhr.open('POST', 'http://localhost:8000/upload');
+        const token = localStorage.getItem('token');
+        if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
         }
-
+        xhr.send(formData);
     };
 
+    // Control upload concurrency (max 3 concurrent uploads)
+    useEffect(() => {
+        const activeUploads = uploadQueue.filter(f => f.status === 'uploading').length;
+        if (activeUploads < 3) {
+            const nextIdle = uploadQueue.find(f => f.status === 'idle');
+            if (nextIdle) {
+                startUpload(nextIdle.id, nextIdle.file);
+            }
+        }
+    }, [uploadQueue]);
+
+    const removeFromQueue = (id: string) => {
+        setUploadQueue(prev => prev.filter(item => item.id !== id));
+    };
+
+    const clearQueue = () => {
+        setUploadQueue([]);
+    };
+
+    const isUploading = uploadQueue.some(item => item.status === 'uploading');
+    const hasItems = uploadQueue.length > 0;
+
     return (
-        <div className="bg-[#1e1e1e] border border-white/5 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-card-background border border-border-default rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-400"></div>
 
-            <h3 className="font-semibold text-xl mb-6 text-white flex items-center gap-2">
-                <UploadCloud className="text-purple-400" />
-                Upload Document
-            </h3>
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="font-semibold text-xl text-text-primary flex items-center gap-2">
+                    <UploadCloud className="text-purple-400" />
+                    Upload Documents
+                </h3>
+                {hasItems && (
+                    <button
+                        onClick={clearQueue}
+                        disabled={isUploading}
+                        className="flex items-center gap-1 text-xs text-text-secondary hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="Clear all queue items"
+                    >
+                        <Trash2 size={14} />
+                        Clear Queue
+                    </button>
+                )}
+            </div>
 
             <div
                 className={cn(
                     "border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer shadow-inner",
-                    isDragging ? "border-purple-500 bg-purple-500/10 scale-[1.02]" : "border-white/10 bg-[#252525] hover:border-white/30 hover:bg-[#2a2a2a]",
-                    file ? "border-green-500/50 bg-green-500/5 hover:border-green-500/70" : ""
+                    isDragging ? "border-purple-500 bg-purple-500/10 scale-[1.02]" : "border-border-default bg-bg-tertiary hover:border-text-secondary hover:bg-bg-primary"
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -108,72 +160,84 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                     onChange={handleFileChange}
                     className="hidden"
                     accept=".pdf,.txt,.doc,.docx"
+                    multiple
                 />
 
-                {!file ? (
-                    <>
-                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300">
-                            <UploadCloud size={32} className="text-gray-400" />
-                        </div>
-                        <p className="text-white font-medium text-lg mb-1">Click to upload or drag and drop</p>
-                        <p className="text-gray-500 text-sm">PDF, TXT, DOC up to 50MB</p>
-                    </>
-                ) : (
-                    <>
-                        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
-                            <FileType size={32} className="text-green-400" />
-                        </div>
-                        <p className="text-white font-medium text-lg mb-1 truncate max-w-[200px] sm:max-w-xs md:max-w-sm">{file.name}</p>
-                        <p className="text-gray-400 text-sm">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </>
-                )}
+                <div className="w-16 h-16 bg-button-secondary rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300">
+                    <UploadCloud size={32} className="text-text-secondary" />
+                </div>
+                <p className="text-text-primary font-medium text-lg mb-1">Click to select files or drag & drop multiple files</p>
+                <p className="text-text-secondary text-sm opacity-80">PDF, TXT, DOC, DOCX files</p>
             </div>
 
-            {file && status === 'idle' && (
-                <div className="mt-8 flex justify-end animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <button
-                        onClick={handleUpload}
-                        className="bg-white text-black px-6 py-2.5 rounded-xl font-medium hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] flex items-center gap-2"
-                    >
-                        Upload & Index
-                        <UploadCloud size={18} />
-                    </button>
-                </div>
-            )}
+            {hasItems && (
+                <div className="mt-8 space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                    <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Upload Queue</div>
+                    {uploadQueue.map((item) => (
+                        <div key={item.id} className="p-3.5 bg-bg-secondary border border-border-default rounded-xl flex flex-col gap-2 relative">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2.5 overflow-hidden">
+                                    <FileType size={16} className={cn(
+                                        item.status === 'success' ? 'text-green-400' :
+                                        item.status === 'error' ? 'text-red-400' : 'text-text-secondary'
+                                    )} />
+                                    <span className="text-sm font-medium text-text-primary truncate max-w-[250px] sm:max-w-xs md:max-w-sm">
+                                        {item.file.name}
+                                    </span>
+                                    <span className="text-xs text-text-secondary opacity-70 shrink-0">
+                                        ({(item.file.size / 1024 / 1024).toFixed(2)} MB)
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                    {item.status === 'idle' && (
+                                        <span className="text-xs text-text-secondary">Queued</span>
+                                    )}
+                                    {item.status === 'uploading' && (
+                                        <div className="flex items-center gap-1.5 text-blue-400 font-medium text-xs">
+                                            <Loader2 size={12} className="animate-spin" />
+                                            {item.progress}%
+                                        </div>
+                                    )}
+                                    {item.status === 'success' && (
+                                        <span className="flex items-center gap-1 text-green-400 font-semibold text-xs">
+                                            <CheckCircle size={12} />
+                                            Indexed
+                                        </span>
+                                    )}
+                                    {item.status === 'error' && (
+                                        <span className="flex items-center gap-1 text-red-400 font-semibold text-xs" title={item.error}>
+                                            <AlertCircle size={12} />
+                                            Failed
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={() => removeFromQueue(item.id)}
+                                        disabled={item.status === 'uploading'}
+                                        className="p-1 hover:bg-button-secondary rounded text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Remove from queue"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            </div>
 
-            {status === 'uploading' && (
-                <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-4 animate-in fade-in duration-300">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                        <Loader2 className="animate-spin text-blue-400" size={20} />
-                    </div>
-                    <div>
-                        <p className="text-blue-100 font-medium text-sm">Uploading and Vectorizing...</p>
-                        <p className="text-blue-300/70 text-xs">This might take a few moments depending on file size.</p>
-                    </div>
-                </div>
-            )}
+                            {/* Individual Progress Bar */}
+                            {item.status === 'uploading' && (
+                                <div className="w-full bg-bg-tertiary rounded-full h-1 overflow-hidden">
+                                    <div
+                                        className="bg-blue-500 h-full rounded-full transition-all duration-300"
+                                        style={{ width: `${item.progress}%` }}
+                                    />
+                                </div>
+                            )}
 
-            {status === 'success' && (
-                <div className="mt-8 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-4 animate-in fade-in duration-300">
-                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                        <CheckCircle className="text-green-400" size={20} />
-                    </div>
-                    <div>
-                        <p className="text-green-100 font-medium text-sm">Successfully Indexed!</p>
-                        <p className="text-green-300/70 text-xs">The document is now active in the AI Support Assistant's memory.</p>
-                    </div>
-                </div>
-            )}
-
-            {status === 'error' && (
-                <div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 animate-in fade-in duration-300">
-                    <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                        <AlertCircle className="text-red-400" size={20} />
-                    </div>
-                    <div>
-                        <p className="text-red-100 font-medium text-sm">Upload Failed</p>
-                        <p className="text-red-300/70 text-xs">{errorMessage}</p>
-                    </div>
+                            {item.status === 'error' && item.error && (
+                                <p className="text-[11px] text-red-400/90 italic font-medium">
+                                    Error: {item.error}
+                                </p>
+                            )}
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

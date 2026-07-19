@@ -21,6 +21,8 @@ from auth import (
     timedelta
 )
 from rag_pipeline import rag_answer, ingest_document
+from activity_logger import log_activity, get_activity_logs
+from settings_manager import load_settings, save_settings, DEFAULT_SETTINGS
 
 # Create Tables
 Base.metadata.create_all(bind=engine)
@@ -154,6 +156,7 @@ def login_for_access_token(
         data={"sub": user.username, "role": user.role},
         expires_delta=access_token_expires
     )
+    log_activity(user.username, "Login")
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/users/me")
@@ -201,6 +204,7 @@ def upload_file(
         os.remove(file_location)  # clean up orphan file
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
 
+    log_activity(current_user.username, "Upload", file.filename)
     return {"filename": file.filename, "status": "Uploaded and Indexed"}
 
 @app.get("/files")
@@ -270,6 +274,7 @@ def delete_file(
         logger.error("[Delete] Failed to remove file from disk: %s", e)
         raise HTTPException(status_code=500, detail=f"Could not delete file from disk: {str(e)}")
 
+    log_activity(current_user.username, "Delete", filename)
     return {
         "filename": filename,
         "status": "deleted"
@@ -296,6 +301,10 @@ def _do_reindex(filename: str, file_location: str) -> None:
             if ids_to_delete:
                 vectorstore.delete(ids=ids_to_delete)
                 logger.info("[Re-index] Removed %d old chunks for %s", len(ids_to_delete), filename)
+                # Verify deletion
+                verify = vectorstore.get(where={"source": file_location})
+                if len(verify.get("ids", [])) > 0:
+                    logger.warning("[Re-index] Verification warning: old vectors still exist!")
             else:
                 logger.info("[Re-index] No existing chunks found for %s (will add fresh)", filename)
         except Exception as del_err:
@@ -325,6 +334,7 @@ def reindex_document(
     _reindex_status[filename] = "running"
     background_tasks.add_task(_do_reindex, filename, file_location)
     logger.info("[Re-index] Queued background task for %s", filename)
+    log_activity(current_user.username, "Re-index", filename)
     return {"filename": filename, "status": "queued", "message": "Re-indexing started in the background."}
 
 @app.get("/reindex/{filename}/status")
@@ -363,8 +373,19 @@ def ask_rag_deprecated(
 # -------------------------
 
 @app.get("/sessions", response_model=list[ChatSessionResponse])
-def get_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    sessions = db.query(ChatSession).filter(ChatSession.user_id == current_user.id).order_by(ChatSession.created_at.desc()).all()
+def get_sessions(
+    search: str = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(ChatSession).filter(ChatSession.user_id == current_user.id)
+    if search:
+        search_term = f"%{search}%"
+        query = query.outerjoin(ChatMessage).filter(
+            (ChatSession.title.ilike(search_term)) |
+            (ChatMessage.content.ilike(search_term))
+        ).distinct()
+    sessions = query.order_by(ChatSession.created_at.desc()).all()
     return sessions
 
 @app.post("/sessions", response_model=ChatSessionResponse)
@@ -403,9 +424,9 @@ def ask_rag_session(
     db.add(user_msg)
     db.commit()
 
-    # Call RAG
+    # Call RAG (passing username for activity logging of failed retrievals)
     try:
-        answer = rag_answer(query.question, db)
+        answer = rag_answer(query.question, db, current_user.username)
     except Exception as e:
         answer = f"Error generating response: {str(e)}"
     
@@ -457,6 +478,7 @@ def create_faq_rule(
     db.add(db_rule)
     db.commit()
     db.refresh(db_rule)
+    log_activity(current_user.username, "FAQ Added", db_rule.keyword)
     return db_rule
 
 @app.delete("/faq/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -468,8 +490,10 @@ def delete_faq_rule(
     db_rule = db.query(FAQRule).filter(FAQRule.id == id).first()
     if not db_rule:
         raise HTTPException(status_code=404, detail="FAQ rule not found")
+    keyword = db_rule.keyword
     db.delete(db_rule)
     db.commit()
+    log_activity(current_user.username, "FAQ Deleted", keyword)
     return
 
 # -------------------------
@@ -511,6 +535,41 @@ def get_analytics_gaps(
         "total_failed": total_failed,
         "gaps": gaps_list
     }
+
+@app.post("/logout")
+def logout(current_user: User = Depends(get_current_user)):
+    log_activity(current_user.username, "Logout")
+    return {"message": "Logged out successfully"}
+
+@app.get("/settings")
+def get_settings(current_user: User = Depends(get_current_admin_user)):
+    return load_settings()
+
+@app.post("/settings")
+def update_settings(
+    settings: dict,
+    current_user: User = Depends(get_current_admin_user)
+):
+    prompt = settings.get("system_prompt", "")
+    # Validate and automatically restore placeholders if they are missing
+    if "{context}" not in prompt or "{question}" not in prompt:
+        if "{context}" not in prompt:
+            prompt += "\n\nContext:\n{context}"
+        if "{question}" not in prompt:
+            prompt += "\n\nUser Question:\n{question}"
+        settings["system_prompt"] = prompt
+        
+    save_settings(settings)
+    return settings
+
+@app.post("/settings/reset")
+def reset_settings(current_user: User = Depends(get_current_admin_user)):
+    save_settings(DEFAULT_SETTINGS.copy())
+    return load_settings()
+
+@app.get("/analytics/activity")
+def get_analytics_activity(current_user: User = Depends(get_current_admin_user)):
+    return get_activity_logs()
 
 @app.get("/")
 def health_check():

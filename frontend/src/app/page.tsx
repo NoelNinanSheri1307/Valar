@@ -23,16 +23,27 @@ export default function Home() {
         }
     }, [router]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (token) {
+                await fetch('http://localhost:8000/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            }
+        } catch (e) {
+            console.error("Logout failed", e);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('role');
         router.push('/login');
     };
 
-    if (loading) return <div className="h-[100dvh] bg-[#212121] text-white flex items-center justify-center">Loading...</div>;
+    if (loading) return <div className="h-[100dvh] bg-bg-primary text-text-primary flex items-center justify-center font-sans">Loading...</div>;
 
     return (
-        <main className="h-[100dvh] w-full bg-[#212121] flex flex-col relative overflow-hidden">
+        <main className="h-[100dvh] w-full bg-bg-primary flex flex-col relative overflow-hidden">
             <div className="flex-1 w-full h-full">
                 <ChatInterface role={role} handleLogout={handleLogout} />
             </div>
