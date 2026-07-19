@@ -6,7 +6,7 @@ import UploadComponent from "../../components/Upload";
 import { 
     ArrowLeft, LayoutDashboard, Database, Settings, FileText, 
     Clock, Ticket, BarChart2, HelpCircle, Activity, ChevronRight,
-    AlertCircle, Trash2, CheckCircle2 
+    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2
 } from "lucide-react";
 
 type UploadedFile = {
@@ -40,6 +40,53 @@ export default function AdminPage() {
     
     // Support tickets state
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
+
+    // Re-index state: filename -> "idle" | "loading" | "done" | "error"
+    const [reindexState, setReindexState] = useState<Record<string, string>>({});
+
+    const handleReindex = async (filename: string) => {
+        if (reindexState[filename] === "loading") return; // prevent duplicate
+        setReindexState(prev => ({ ...prev, [filename]: "loading" }));
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Re-index failed");
+            }
+            // Poll until done (max 120s, every 2s)
+            let attempts = 0;
+            const poll = setInterval(async () => {
+                attempts++;
+                try {
+                    const statusRes = await fetch(
+                        `http://localhost:8000/reindex/${encodeURIComponent(filename)}/status`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const statusData = await statusRes.json();
+                    if (statusData.status === "done") {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: "done" }));
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 4000);
+                    } else if (statusData.status === "error") {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: `error:${statusData.detail}` }));
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+                    } else if (attempts >= 60) {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: "error:Timed out" }));
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+                    }
+                } catch { /* network hiccup, keep polling */ }
+            }, 2000);
+        } catch (err: any) {
+            setReindexState(prev => ({ ...prev, [filename]: `error:${err.message}` }));
+            setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+        }
+    };
 
     const fetchFiles = async () => {
         try {
@@ -222,12 +269,37 @@ export default function AdminPage() {
                                                             <Clock size={12} />
                                                             <span>{new Date(f.uploaded_at).toLocaleDateString()}</span>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => alert("Re-indexing document... (Teammate API integration placeholder)")}
-                                                            className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
-                                                        >
-                                                            Re-index
-                                                        </button>
+                                                        {/* Re-index button with live state */}
+                                                        {(() => {
+                                                            const st = reindexState[f.filename] || "idle";
+                                                            if (st === "loading") return (
+                                                                <span className="flex items-center gap-1.5 text-yellow-400 font-medium cursor-wait">
+                                                                    <Loader2 size={12} className="animate-spin" />
+                                                                    Indexing...
+                                                                </span>
+                                                            );
+                                                            if (st === "done") return (
+                                                                <span className="flex items-center gap-1.5 text-green-400 font-medium">
+                                                                    <CheckCircle2 size={12} />
+                                                                    Indexed!
+                                                                </span>
+                                                            );
+                                                            if (st.startsWith("error:")) return (
+                                                                <span className="flex items-center gap-1.5 text-red-400 font-medium max-w-[140px] truncate" title={st.slice(6)}>
+                                                                    Failed
+                                                                </span>
+                                                            );
+                                                            return (
+                                                                <button
+                                                                    onClick={() => handleReindex(f.filename)}
+                                                                    className="flex items-center gap-1.5 text-purple-400 hover:text-purple-300 font-medium transition-colors"
+                                                                    title="Re-index this document"
+                                                                >
+                                                                    <RotateCcw size={12} />
+                                                                    Re-index
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             ))}

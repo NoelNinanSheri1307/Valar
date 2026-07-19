@@ -1,7 +1,8 @@
 import os
 import shutil
+import logging
 from typing import Annotated
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -22,6 +23,10 @@ from rag_pipeline import rag_answer, ingest_document
 
 # Create Tables
 Base.metadata.create_all(bind=engine)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Industrial Knowledge Graph & RAG API",
@@ -174,6 +179,73 @@ def list_files(current_user: User = Depends(get_current_admin_user)):
         return files
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+
+# -------------------------
+# Re-index Endpoint (Admin Only)
+# -------------------------
+
+# Track in-progress re-index jobs (in-memory — resets on restart, fine for hackathon)
+_reindex_status: dict[str, str] = {}  # filename -> "running" | "done" | "error:<msg>"
+
+def _do_reindex(filename: str, file_location: str) -> None:
+    """Background task: remove old embeddings then re-ingest the document."""
+    global _reindex_status
+    logger.info("[Re-index] START — %s", filename)
+    try:
+        from rag_pipeline import vectorstore, ingest_document
+
+        # 1. Remove existing embeddings for this file (Chroma filter by source metadata)
+        try:
+            existing = vectorstore.get(where={"source": file_location})
+            ids_to_delete = existing.get("ids", [])
+            if ids_to_delete:
+                vectorstore.delete(ids=ids_to_delete)
+                logger.info("[Re-index] Removed %d old chunks for %s", len(ids_to_delete), filename)
+            else:
+                logger.info("[Re-index] No existing chunks found for %s (will add fresh)", filename)
+        except Exception as del_err:
+            logger.warning("[Re-index] Could not remove old chunks (non-fatal): %s", del_err)
+
+        # 2. Re-ingest
+        ingest_document(file_location)
+        logger.info("[Re-index] DONE — %s", filename)
+        _reindex_status[filename] = "done"
+    except Exception as e:
+        logger.error("[Re-index] FAILED — %s — %s", filename, str(e))
+        _reindex_status[filename] = f"error:{str(e)}"
+
+@app.post("/reindex/{filename}")
+def reindex_document(
+    filename: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_admin_user)
+):
+    file_location = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_location):
+        raise HTTPException(status_code=404, detail=f"File '{filename}' not found on disk.")
+
+    if _reindex_status.get(filename) == "running":
+        raise HTTPException(status_code=409, detail="Re-index already in progress for this file.")
+
+    _reindex_status[filename] = "running"
+    background_tasks.add_task(_do_reindex, filename, file_location)
+    logger.info("[Re-index] Queued background task for %s", filename)
+    return {"filename": filename, "status": "queued", "message": "Re-indexing started in the background."}
+
+@app.get("/reindex/{filename}/status")
+def get_reindex_status(
+    filename: str,
+    current_user: User = Depends(get_current_admin_user)
+):
+    status_val = _reindex_status.get(filename)
+    if status_val is None:
+        return {"filename": filename, "status": "idle"}
+    if status_val == "running":
+        return {"filename": filename, "status": "running"}
+    if status_val == "done":
+        return {"filename": filename, "status": "done"}
+    # error:<msg>
+    return {"filename": filename, "status": "error", "detail": status_val.split(":", 1)[-1]}
 
 # -------------------------
 # RAG Endpoint

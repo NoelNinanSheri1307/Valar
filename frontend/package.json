@@ -11,6 +11,7 @@
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.18.3",
     "clsx": "^2.1.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.561.0",
     "next": "16.0.10",
     "react": "19.2.1",

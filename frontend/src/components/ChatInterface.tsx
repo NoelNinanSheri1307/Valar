@@ -7,6 +7,7 @@ import { twMerge } from "tailwind-merge";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useRouter } from "next/navigation";
+import { exportAsMarkdown, exportAsPlainText, exportAsPDF } from "../lib/chatExport";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -439,7 +440,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col h-full relative w-full overflow-hidden">
+            <div className="flex-1 flex flex-col h-full relative w-full overflow-x-hidden">
                 {/* Header */}
                 <div className="sticky top-0 z-30 flex items-center justify-between p-3 text-gray-200 bg-[#212121]/90 backdrop-blur-md border-b border-white/5 w-full">
                     <div className="flex items-center">
@@ -479,24 +480,27 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 </button>
                                 
                                 {isExportMenuOpen && (
-                                    <div className="absolute right-0 top-10 w-40 bg-[#1e1e1e] border border-white/10 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="absolute right-0 top-10 w-44 bg-[#1e1e1e] border border-white/10 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
                                         <button 
-                                            onClick={() => { alert("Exporting Chat as Markdown... (Placeholder)"); setIsExportMenuOpen(false); }}
-                                            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                                            onClick={() => { exportAsMarkdown(messages); setIsExportMenuOpen(false); }}
+                                            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
                                         >
-                                            Export as Markdown
+                                            <Download size={11} className="text-gray-500" />
+                                            Markdown (.md)
                                         </button>
                                         <button 
-                                            onClick={() => { alert("Exporting Chat as PDF Document... (Placeholder)"); setIsExportMenuOpen(false); }}
-                                            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                                            onClick={() => { exportAsPDF(messages); setIsExportMenuOpen(false); }}
+                                            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
                                         >
-                                            Export as PDF Document
+                                            <Download size={11} className="text-gray-500" />
+                                            PDF Document (.pdf)
                                         </button>
                                         <button 
-                                            onClick={() => { alert("Exporting Chat as Plain Text... (Placeholder)"); setIsExportMenuOpen(false); }}
-                                            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                                            onClick={() => { exportAsPlainText(messages); setIsExportMenuOpen(false); }}
+                                            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
                                         >
-                                            Export as Plain Text
+                                            <Download size={11} className="text-gray-500" />
+                                            Plain Text (.txt)
                                         </button>
                                     </div>
                                 )}
