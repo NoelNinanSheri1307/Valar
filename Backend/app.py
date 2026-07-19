@@ -232,34 +232,47 @@ def delete_file(
     if not os.path.exists(file_location):
         raise HTTPException(status_code=404, detail=f"File '{filename}' not found.")
 
-    errors = []
+    print("\n[Delete]")
+    print(f"Document: {filename}")
+    print(f"Metadata used during deletion: {{'source': '{file_location}'}}")
 
     # 1. Remove embeddings from ChromaDB
     try:
         from rag_pipeline import vectorstore
         existing = vectorstore.get(where={"source": file_location})
         ids_to_delete = existing.get("ids", [])
-        if ids_to_delete:
+        num_embeddings = len(ids_to_delete)
+        print(f"Found {num_embeddings} embeddings")
+        
+        if num_embeddings > 0:
             vectorstore.delete(ids=ids_to_delete)
-            logger.info("[Delete] Removed %d chunks for %s", len(ids_to_delete), filename)
-        else:
-            logger.info("[Delete] No chunks found in vector store for %s", filename)
+            print(f"Deleted {num_embeddings} embeddings")
+            print("Deleted metadata")
+            
+        # Verify deletion
+        verify_existing = vectorstore.get(where={"source": file_location})
+        num_remaining = len(verify_existing.get("ids", []))
+        print(f"Number remaining: {num_remaining}")
+        
+        if num_remaining > 0:
+            raise Exception("ChromaDB still contains embeddings for this document after deletion.")
+            
     except Exception as e:
-        logger.warning("[Delete] Could not purge embeddings (non-fatal): %s", e)
-        errors.append(str(e))
+        logger.error("[Delete] Failed to purge embeddings: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to remove vector embeddings: {str(e)}")
 
     # 2. Delete physical file
     try:
         os.remove(file_location)
-        logger.info("[Delete] Removed file from disk: %s", filename)
+        print("Deleted file")
+        print("Delete completed successfully")
     except Exception as e:
         logger.error("[Delete] Failed to remove file from disk: %s", e)
         raise HTTPException(status_code=500, detail=f"Could not delete file from disk: {str(e)}")
 
     return {
         "filename": filename,
-        "status": "deleted",
-        "warnings": errors if errors else None
+        "status": "deleted"
     }
 
 # -------------------------
