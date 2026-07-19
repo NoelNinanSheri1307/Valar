@@ -6,7 +6,7 @@ import UploadComponent from "../../components/Upload";
 import {
     ArrowLeft, LayoutDashboard, Database, Settings, FileText,
     Clock, Ticket, BarChart2, HelpCircle, Activity, ChevronRight,
-    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2
+    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2, X
 } from "lucide-react";
 
 type UploadedFile = {
@@ -41,6 +41,161 @@ export default function AdminPage() {
     // Support tickets state
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
+    // Re-index state: filename -> "idle" | "loading" | "done" | "error"
+    const [reindexState, setReindexState] = useState<Record<string, string>>({});
+
+    const handleReindex = async (filename: string) => {
+        if (reindexState[filename] === "loading") return; // prevent duplicate
+        setReindexState(prev => ({ ...prev, [filename]: "loading" }));
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Re-index failed");
+            }
+            // Poll until done (max 120s, every 2s)
+            let attempts = 0;
+            const poll = setInterval(async () => {
+                attempts++;
+                try {
+                    const statusRes = await fetch(
+                        `http://localhost:8000/reindex/${encodeURIComponent(filename)}/status`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const statusData = await statusRes.json();
+                    if (statusData.status === "done") {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: "done" }));
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 4000);
+                    } else if (statusData.status === "error") {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: `error:${statusData.detail}` }));
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+                    } else if (attempts >= 60) {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: "error:Timed out" }));
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+                    }
+                } catch { /* network hiccup, keep polling */ }
+            }, 2000);
+        } catch (err: any) {
+            setReindexState(prev => ({ ...prev, [filename]: `error:${err.message}` }));
+            setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+        }
+    };
+
+    // FAQ and Analytics integrated states
+    const [faqs, setFaqs] = useState<any[]>([]);
+    const [newKeyword, setNewKeyword] = useState("");
+    const [newResponse, setNewResponse] = useState("");
+    const [newIsActive, setNewIsActive] = useState(true);
+    const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
+    const [faqToDelete, setFaqToDelete] = useState<number | null>(null);
+    const [systemStatus, setSystemStatus] = useState({ vectorStore: "Checking Status", sqLite: "Checking Status" });
+
+    const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+        setToast({ message, type });
+    };
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
+    const [analyticsData, setAnalyticsData] = useState<{ failed_rate: string, total_failed: number, gaps: any[] }>({
+        failed_rate: "0.0%",
+        total_failed: 0,
+        gaps: []
+    });
+
+    const fetchFaqs = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:8000/faq', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setFaqs(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch FAQs", error);
+        }
+    };
+
+    const handleAddFaq = async () => {
+        if (!newKeyword.trim() || !newResponse.trim()) {
+            showToast("Please fill in both keyword and response.", "error");
+            return;
+        }
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:8000/faq', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    keyword: newKeyword.trim(),
+                    response: newResponse.trim(),
+                    is_active: newIsActive
+                })
+            });
+            if (res.ok) {
+                setNewKeyword("");
+                setNewResponse("");
+                fetchFaqs();
+                showToast("FAQ rule added successfully", "success");
+            } else {
+                const errorData = await res.json();
+                showToast(errorData.detail || "Failed to add FAQ rule", "error");
+            }
+        } catch (error) {
+            console.error("Failed to add FAQ", error);
+            showToast("Failed to add FAQ rule due to connection error", "error");
+        }
+    };
+
+    const confirmDeleteFaq = async (id: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:8000/faq/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                fetchFaqs();
+                showToast("FAQ rule deleted successfully", "success");
+            } else {
+                showToast("Failed to delete FAQ rule", "error");
+            }
+        } catch (error) {
+            console.error("Failed to delete FAQ", error);
+            showToast("Failed to delete FAQ rule due to connection error", "error");
+        }
+    };
+
+    const fetchAnalytics = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:8000/analytics/gaps', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAnalyticsData(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch analytics gaps", error);
+        }
+    };
     const fetchFiles = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -116,6 +271,21 @@ export default function AdminPage() {
             loadTickets();
             fetchFaqs();
             fetchAnalytics();
+
+            // Real-time backend system status check
+            const checkHealth = async () => {
+                try {
+                    const res = await fetch("http://localhost:8000/");
+                    if (res.ok) {
+                        setSystemStatus({ vectorStore: "Online", sqLite: "Online" });
+                    } else {
+                        setSystemStatus({ vectorStore: "Offline", sqLite: "Offline" });
+                    }
+                } catch {
+                    setSystemStatus({ vectorStore: "Offline", sqLite: "Offline" });
+                }
+            };
+            checkHealth();
         }
     }, [router]);
 
@@ -418,8 +588,8 @@ export default function AdminPage() {
                                                         )}>
                                                             {faq.is_active ? "Cached" : "Bypassed"}
                                                         </span>
-                                                        <button
-                                                            onClick={() => handleDeleteFaq(faq.id)}
+                                                        <button 
+                                                            onClick={() => setFaqToDelete(faq.id)}
                                                             className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-colors"
                                                             title="Delete Rule"
                                                         >
@@ -498,7 +668,18 @@ export default function AdminPage() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-400">Vector Store</span>
-                                    <span className="text-green-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Online</span>
+                                    <span className={cn(
+                                        "flex items-center gap-1.5 font-medium",
+                                        systemStatus.vectorStore === "Online" ? "text-green-400" : 
+                                        systemStatus.vectorStore === "Offline" ? "text-red-400" : "text-yellow-400"
+                                    )}>
+                                        <span className={cn(
+                                            "w-2 h-2 rounded-full inline-block animate-pulse",
+                                            systemStatus.vectorStore === "Online" ? "bg-green-500" : 
+                                            systemStatus.vectorStore === "Offline" ? "bg-red-500" : "bg-yellow-500"
+                                        )}></span>
+                                        {systemStatus.vectorStore}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-400">Embedding Model</span>
@@ -506,7 +687,18 @@ export default function AdminPage() {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-400">SQLite Base</span>
-                                    <span className="text-green-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Online</span>
+                                    <span className={cn(
+                                        "flex items-center gap-1.5 font-medium",
+                                        systemStatus.sqLite === "Online" ? "text-green-400" : 
+                                        systemStatus.sqLite === "Offline" ? "text-red-400" : "text-yellow-400"
+                                    )}>
+                                        <span className={cn(
+                                            "w-2 h-2 rounded-full inline-block animate-pulse",
+                                            systemStatus.sqLite === "Online" ? "bg-green-500" : 
+                                            systemStatus.sqLite === "Offline" ? "bg-red-500" : "bg-yellow-500"
+                                        )}></span>
+                                        {systemStatus.sqLite}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -526,6 +718,59 @@ export default function AdminPage() {
                     </div>
                 </div>
             </div>
+
+        {/* Custom Deletion Confirmation Modal for FAQ rules */}
+        {faqToDelete !== null && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                <div className="bg-[#1e1e1e] border border-white/10 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative font-sans">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                    <div className="p-6 text-center">
+                        <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                            <Trash2 size={20} />
+                        </div>
+                        <h3 className="text-base font-semibold text-white mb-2">Delete FAQ Rule?</h3>
+                        <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                            Are you sure you want to delete this FAQ rule? This will remove the instant cached response mapping.
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={() => setFaqToDelete(null)}
+                                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium text-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const id = faqToDelete;
+                                    setFaqToDelete(null);
+                                    await confirmDeleteFaq(id);
+                                }}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium font-semibold transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Custom Toast Notification */}
+        {toast && (
+            <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
+                <div className={cn(
+                    "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-2xl backdrop-blur-md",
+                    toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
+                    toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
+                    "bg-white/10 border-white/10 text-gray-200"
+                )}>
+                    <span className="text-xs font-semibold">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="hover:bg-white/10 p-1 rounded transition-colors text-gray-400 hover:text-white">
+                        <X size={12} />
+                    </button>
+                </div>
+            </div>
+        )}
         </main>
     );
 }

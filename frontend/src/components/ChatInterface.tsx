@@ -66,6 +66,26 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
     const [ticketSuccess, setTicketSuccess] = useState(false);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
     const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
+    const [username, setUsername] = useState("User");
+
+    const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+        setToast({ message, type });
+    };
+
+    useEffect(() => {
+        const stored = localStorage.getItem("username");
+        if (stored) {
+            setUsername(stored);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
 
     const confirmDeleteSession = async (sessionId: number) => {
         try {
@@ -80,12 +100,13 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     setCurrentSessionId(null);
                 }
                 fetchSessions();
+                showToast("Conversation deleted successfully", "success");
             } else {
                 throw new Error("Failed to delete session");
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to delete this conversation. Please try again.");
+            showToast("Failed to delete this conversation. Please try again.", "error");
         }
     };
 
@@ -432,10 +453,10 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         </div>
 
                         <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                                U
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg uppercase">
+                                {username.charAt(0)}
                             </div>
-                            <div className="text-sm font-medium text-gray-200">User</div>
+                            <div className="text-sm font-medium text-gray-200 truncate max-w-[150px]">{username}</div>
                         </div>
                     </div>
                 </div>
@@ -553,7 +574,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                         <button 
                                                             onClick={() => {
                                                                 navigator.clipboard.writeText(msg.content);
-                                                                alert("Response copied to clipboard!");
+                                                                showToast("Response copied to clipboard!", "success");
                                                             }}
                                                             className="text-xs hover:text-gray-300 transition-colors flex items-center gap-1"
                                                             title="Copy Answer"
@@ -577,14 +598,14 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-sans">Was this helpful?</span>
                                                         <button 
-                                                            onClick={() => alert("Feedback saved: Helpful! (Stored in Local Analytics Dashboard)")}
+                                                            onClick={() => showToast("Feedback saved: Helpful! (Stored in Local Analytics Dashboard)", "success")}
                                                             className="hover:text-green-400 transition-colors p-1 hover:bg-white/5 rounded"
                                                             title="Helpful"
                                                         >
                                                             <ThumbsUp size={13} />
                                                         </button>
                                                         <button 
-                                                            onClick={() => alert("Feedback saved: Not Helpful! (Stored in Local Analytics Dashboard)")}
+                                                            onClick={() => showToast("Feedback saved: Not Helpful! (Stored in Local Analytics Dashboard)", "info")}
                                                             className="hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
                                                             title="Not Helpful"
                                                         >
@@ -806,14 +827,14 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     <div className="pt-2 flex justify-end gap-3">
                                         <button
                                             onClick={() => setIsTicketModalOpen(false)}
-                                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium text-gray-300 transition-colors"
+                                                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium text-gray-300 transition-colors"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={() => {
                                                 if (!ticketSubject.trim() || !ticketDescription.trim()) {
-                                                    alert("Please fill in all fields.");
+                                                    showToast("Please fill in all fields.", "error");
                                                     return;
                                                 }
                                                 const existing = localStorage.getItem("support_tickets");
@@ -882,6 +903,23 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Toast Notification */}
+            {toast && (
+                <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
+                    <div className={cn(
+                        "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-2xl backdrop-blur-md",
+                        toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
+                        toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
+                        "bg-white/10 border-white/10 text-gray-200"
+                    )}>
+                        <span className="text-xs font-semibold">{toast.message}</span>
+                        <button onClick={() => setToast(null)} className="hover:bg-white/10 p-1 rounded transition-colors text-gray-400 hover:text-white">
+                            <X size={12} />
+                        </button>
                     </div>
                 </div>
             )}
