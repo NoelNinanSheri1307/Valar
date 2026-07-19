@@ -9,6 +9,8 @@ import remarkGfm from 'remark-gfm';
 import { useRouter } from "next/navigation";
 import { exportAsMarkdown, exportAsPlainText, exportAsPDF } from "../lib/chatExport";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
@@ -171,7 +173,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
         const fetchProfile = async () => {
             try {
-                const res = await fetch('http://localhost:8000/users/me', {
+                const res = await fetch(`${API_BASE_URL}/users/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -222,7 +224,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
     const confirmDeleteSession = async (sessionId: number) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8000/sessions/${sessionId}`, {
+            const res = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -307,7 +309,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                 router.push('/login');
                 return;
             }
-            let url = 'http://localhost:8000/sessions';
+            let url = `${API_BASE_URL}/sessions`;
             if (search && search.trim() !== '') {
                 url += `?search=${encodeURIComponent(search.trim())}`;
             }
@@ -342,7 +344,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8000/sessions/${sessionId}/messages`, {
+            const res = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.status === 401) {
@@ -384,7 +386,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             let activeSessionId = currentSessionId;
 
             if (!activeSessionId) {
-                const createRes = await fetch('http://localhost:8000/sessions', {
+                const createRes = await fetch(`${API_BASE_URL}/sessions`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -403,7 +405,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                 }
             }
 
-            const askRes = await fetch(`http://localhost:8000/sessions/${activeSessionId}/ask`, {
+            const askRes = await fetch(`${API_BASE_URL}/sessions/${activeSessionId}/ask`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

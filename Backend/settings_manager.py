@@ -1,7 +1,7 @@
 import os
 import json
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
+SETTINGS_FILE = os.getenv("SETTINGS_PATH", os.path.join(os.path.dirname(__file__), "settings.json"))
 
 DEFAULT_SETTINGS = {
     "chunk_size": 1000,

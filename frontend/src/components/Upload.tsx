@@ -92,7 +92,8 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
             setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'error', error: 'Network error' } : item));
         });
 
-        xhr.open('POST', 'http://localhost:8000/upload');
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        xhr.open('POST', `${baseUrl}/upload`);
         const token = localStorage.getItem('token');
         if (token) {
             xhr.setRequestHeader('Authorization', `Bearer ${token}`);

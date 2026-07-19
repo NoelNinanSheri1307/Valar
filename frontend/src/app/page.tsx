@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ChatInterface from "../components/ChatInterface";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function Home() {
     const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function Home() {
         try {
             const token = localStorage.getItem('token');
             if (token) {
-                await fetch('http://localhost:8000/logout', {
+                await fetch(`${API_BASE_URL}/logout`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

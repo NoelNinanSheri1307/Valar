@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 import threading
 
-LOG_FILE = os.path.join(os.path.dirname(__file__), "activity_logs.json")
+LOG_FILE = os.getenv("ACTIVITY_LOG_PATH", os.path.join(os.path.dirname(__file__), "activity_logs.json"))
 log_lock = threading.Lock()
 
 def log_activity(username: str, action: str, target: str = None):
