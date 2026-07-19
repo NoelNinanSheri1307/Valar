@@ -6,7 +6,7 @@ import UploadComponent from "../../components/Upload";
 import {
     ArrowLeft, LayoutDashboard, Database, Settings, FileText,
     Clock, Ticket, BarChart2, HelpCircle, Activity, ChevronRight,
-    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2
+    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2, X
 } from "lucide-react";
 
 type UploadedFile = {
@@ -41,6 +41,38 @@ export default function AdminPage() {
     // Support tickets state
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
+    // ---- FAQ state ----
+    type FaqRule = { id: number; keyword: string; response: string; is_active: boolean };
+    const [faqs, setFaqs] = useState<FaqRule[]>([]);
+    const [newKeyword, setNewKeyword] = useState("");
+    const [newResponse, setNewResponse] = useState("");
+    const [newIsActive, setNewIsActive] = useState(true);
+
+    // ---- Analytics state ----
+    type GapItem = { query_text: string; failure_count: number; highest_score: number; created_at: string };
+    const [analyticsData, setAnalyticsData] = useState<{ failed_rate: string; total_failed: number; gaps: GapItem[] }>({
+        failed_rate: "–",
+        total_failed: 0,
+        gaps: [],
+    });
+
+    // ---- Re-index state: filename -> "idle" | "loading" | "done" | "error:<msg>" ----
+    const [reindexState, setReindexState] = useState<Record<string, string>>({});
+
+    // ---- Delete file state: filename -> "idle" | "loading" | "done" | "error" ----
+    const [deleteState, setDeleteState] = useState<Record<string, string>>({});
+
+    // ---- Toast state for notifications ----
+    const [toast, setToast] = useState<{ message: string, type: 'info' | 'success' | 'error' } | null>(null);
+
+    // Auto-clear toast after 5s
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
     const fetchFiles = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -55,6 +87,126 @@ export default function AdminPage() {
             console.error("Failed to fetch files", error);
         }
     };
+
+    const fetchFaqs = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:8000/faq', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) setFaqs(await res.json());
+        } catch (e) { console.error("Failed to fetch FAQs", e); }
+    };
+
+    const fetchAnalytics = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:8000/analytics/gaps', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) setAnalyticsData(await res.json());
+        } catch (e) { console.error("Failed to fetch analytics", e); }
+    };
+
+    const handleAddFaq = async () => {
+        if (!newKeyword.trim() || !newResponse.trim()) return;
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:8000/faq', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword: newKeyword.trim(), response: newResponse.trim(), is_active: newIsActive }),
+            });
+            if (res.ok) {
+                setNewKeyword(""); setNewResponse(""); setNewIsActive(true);
+                fetchFaqs();
+            } else {
+                const err = await res.json();
+                alert(err.detail || "Failed to add FAQ rule");
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const handleDeleteFaq = async (id: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(`http://localhost:8000/faq/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchFaqs();
+        } catch (e) { console.error(e); }
+    };
+
+    const handleReindex = async (filename: string) => {
+        if (reindexState[filename] === "loading") return;
+        setReindexState(prev => ({ ...prev, [filename]: "loading" }));
+        setToast({ message: "Re-indexing document... Please wait.", type: "info" });
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Re-index failed"); }
+            let attempts = 0;
+            const poll = setInterval(async () => {
+                attempts++;
+                try {
+                    const statusRes = await fetch(
+                        `http://localhost:8000/reindex/${encodeURIComponent(filename)}/status`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const statusData = await statusRes.json();
+                    if (statusData.status === "done") {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: "done" }));
+                        setToast({ message: "Document re-indexed successfully.", type: "success" });
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 4000);
+                    } else if (statusData.status === "error") {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: `error:${statusData.detail}` }));
+                        setToast({ message: `Re-index failed: ${statusData.detail}`, type: "error" });
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+                    } else if (attempts >= 60) {
+                        clearInterval(poll);
+                        setReindexState(prev => ({ ...prev, [filename]: "error:Timed out" }));
+                        setToast({ message: "Re-index failed: Timed out.", type: "error" });
+                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+                    }
+                } catch { /* keep polling */ }
+            }, 2000);
+        } catch (err: any) {
+            setReindexState(prev => ({ ...prev, [filename]: `error:${err.message}` }));
+            setToast({ message: `Re-index failed: ${err.message}`, type: "error" });
+            setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
+        }
+    };
+
+    const handleDeleteFile = async (filename: string) => {
+        if (deleteState[filename] === "loading") return;
+        if (!confirm(`Delete "${filename}" from the knowledge base? This cannot be undone.`)) return;
+        setDeleteState(prev => ({ ...prev, [filename]: "loading" }));
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`http://localhost:8000/files/${encodeURIComponent(filename)}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Delete failed");
+            }
+            setDeleteState(prev => ({ ...prev, [filename]: "done" }));
+            fetchFiles(); // refresh list
+            setTimeout(() => setDeleteState(prev => ({ ...prev, [filename]: "idle" })), 3000);
+        } catch (err: any) {
+            setDeleteState(prev => ({ ...prev, [filename]: `error` }));
+            alert(`Failed to delete: ${err.message}`);
+            setTimeout(() => setDeleteState(prev => ({ ...prev, [filename]: "idle" })), 4000);
+        }
+    };
+
 
     const loadTickets = () => {
         const existing = localStorage.getItem("support_tickets");
@@ -223,8 +375,7 @@ export default function AdminPage() {
                                                         <div className="flex items-center gap-1.5">
                                                             <Clock size={12} />
                                                             <span>{new Date(f.uploaded_at).toLocaleDateString()}</span>
-                                                        </div>
-                                                        {/* Re-index button with live state */}
+                                                        </div>                                                         {/* Re-index button with live state */}
                                                         {(() => {
                                                             const st = reindexState[f.filename] || "idle";
                                                             if (st === "loading") return (
@@ -255,6 +406,21 @@ export default function AdminPage() {
                                                                 </button>
                                                             );
                                                         })()}
+
+                                                        {/* Delete button with live state */}
+                                                        {deleteState[f.filename] === "loading" ? (
+                                                            <span className="flex items-center gap-1 text-gray-400 cursor-wait">
+                                                                <Loader2 size={12} className="animate-spin" />
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleDeleteFile(f.filename)}
+                                                                className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-colors"
+                                                                title="Delete document"
+                                                            >
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -526,6 +692,21 @@ export default function AdminPage() {
                     </div>
                 </div>
             </div>
+
+            {toast && (
+                <div className={cn(
+                    "fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300",
+                    toast.type === 'success' ? "bg-green-500/10 border border-green-500/20 text-green-400" :
+                    toast.type === 'error' ? "bg-red-500/10 border border-red-500/20 text-red-400" :
+                    "bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                )}>
+                    {toast.type === 'success' ? <CheckCircle2 size={18} /> : 
+                     toast.type === 'error' ? <AlertCircle size={18} /> : 
+                     <Loader2 size={18} className="animate-spin" />}
+                    <span className="font-medium text-sm">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70 text-gray-400"><X size={14} /></button>
+                </div>
+            )}
         </main>
     );
 }

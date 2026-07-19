@@ -170,23 +170,37 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 UPLOAD_DIR = "uploaded_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# File types the pipeline can actually ingest
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
+
 @app.post("/upload")
 def upload_file(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_admin_user)
 ):
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext == ".doc":
+        raise HTTPException(
+            status_code=400,
+            detail="Legacy .doc format requires system-level dependencies (antiword/LibreOffice) to parse. Please convert the file to .docx or .pdf before uploading."
+        )
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed: PDF, TXT, DOCX."
+        )
+
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
+
     # Ingest into RAG
     try:
         ingest_document(file_location)
     except Exception as e:
-        # cleanup if failed (optional)
-        # os.remove(file_location)
+        os.remove(file_location)  # clean up orphan file
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
-        
+
     return {"filename": file.filename, "status": "Uploaded and Indexed"}
 
 @app.get("/files")
@@ -205,6 +219,48 @@ def list_files(current_user: User = Depends(get_current_admin_user)):
         return files
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+
+@app.delete("/files/{filename}", status_code=status.HTTP_200_OK)
+def delete_file(
+    filename: str,
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Delete an uploaded document: removes the file from disk and purges its
+    embeddings from ChromaDB using the LangChain source metadata key."""
+    file_location = os.path.join(UPLOAD_DIR, filename)
+
+    if not os.path.exists(file_location):
+        raise HTTPException(status_code=404, detail=f"File '{filename}' not found.")
+
+    errors = []
+
+    # 1. Remove embeddings from ChromaDB
+    try:
+        from rag_pipeline import vectorstore
+        existing = vectorstore.get(where={"source": file_location})
+        ids_to_delete = existing.get("ids", [])
+        if ids_to_delete:
+            vectorstore.delete(ids=ids_to_delete)
+            logger.info("[Delete] Removed %d chunks for %s", len(ids_to_delete), filename)
+        else:
+            logger.info("[Delete] No chunks found in vector store for %s", filename)
+    except Exception as e:
+        logger.warning("[Delete] Could not purge embeddings (non-fatal): %s", e)
+        errors.append(str(e))
+
+    # 2. Delete physical file
+    try:
+        os.remove(file_location)
+        logger.info("[Delete] Removed file from disk: %s", filename)
+    except Exception as e:
+        logger.error("[Delete] Failed to remove file from disk: %s", e)
+        raise HTTPException(status_code=500, detail=f"Could not delete file from disk: {str(e)}")
+
+    return {
+        "filename": filename,
+        "status": "deleted",
+        "warnings": errors if errors else None
+    }
 
 # -------------------------
 # Re-index Endpoint (Admin Only)
