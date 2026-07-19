@@ -85,6 +85,8 @@ def ingest_document(file_path: str):
 
     docs = loader.load()
     splits = text_splitter.split_documents(docs)
+    if splits:
+        print(f"Metadata stored during ingestion (first chunk): {splits[0].metadata}")
     vectorstore.add_documents(documents=splits)
 
 
