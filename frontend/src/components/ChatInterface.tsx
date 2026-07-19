@@ -24,10 +24,10 @@ type ChatSession = {
 };
 
 const SUGGESTED_QUERIES = [
-    { text: "How do I troubleshoot pump valve pressure drop?", icon: Briefcase, label: "Troubleshoot valve" },
-    { text: "What are the standard safety procedures for Sector 4?", icon: BookOpen, label: "Safety SOPs" },
-    { text: "Show me the hardware setup checklist.", icon: Building, label: "Hardware setup" },
-    { text: "Reset instructions for high pressure boiler alarms.", icon: HelpCircle, label: "Boiler reset" },
+    { text: "How do I configure automatic email routing for support tickets?", icon: Briefcase, label: "Ticket routing" },
+    { text: "What is the standard escalation policy for urgent complaints?", icon: BookOpen, label: "Escalation policy" },
+    { text: "Show me the refund approval setup checklist.", icon: Building, label: "Refund checklist" },
+    { text: "Reset instructions for account locks and password resets.", icon: HelpCircle, label: "Account lock reset" },
 ];
 
 const PLACEHOLDERS = [
@@ -454,7 +454,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         </button>
                         <span className="ml-3 font-semibold text-base text-gray-100 flex items-center gap-2">
                             <Bot size={18} className="text-purple-400 font-bold" />
-                            Valar - AI Support Assistant
+                             Valar - Support Copilot
                         </span>
                     </div>
 
@@ -759,7 +759,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 <div className="py-8 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-200">
                                     <CheckCircle2 size={48} className="text-green-400 mb-3 animate-bounce" />
                                     <h4 className="text-white font-medium text-base">Ticket Submitted Successfully!</h4>
-                                    <p className="text-gray-400 text-xs mt-1">Our support managers have been notified.</p>
+                                    <p className="text-gray-400 text-xs mt-1">Our support administrators have been notified.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -821,7 +821,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                     priority: ticketPriority,
                                                     status: "Open",
                                                     createdAt: new Date().toISOString(),
-                                                    user: localStorage.getItem("username") || "Technician"
+                                                    user: localStorage.getItem("username") || "Agent"
                                                 };
                                                 tickets.push(newT);
                                                 localStorage.setItem("support_tickets", JSON.stringify(tickets));

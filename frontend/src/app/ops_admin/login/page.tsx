@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
             const userData = await userRes.json();
 
             if (userData.role !== 'manager') {
-                throw new Error('Unauthorized. Manager access only.');
+                throw new Error('Unauthorized. Admin access only.');
             }
 
             localStorage.setItem('token', data.access_token);
@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
                     <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-6 border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.05)] transition-transform hover:scale-105 duration-300">
                         <ShieldCheck size={32} className="text-white" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Manager Portal</h2>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">Admin Portal</h2>
                     <p className="text-gray-400 mt-2 text-sm font-medium">Restricted access area</p>
                 </div>
 
@@ -79,13 +79,13 @@ export default function AdminLoginPage() {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Manager Username</label>
+                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Admin Username</label>
                             <input
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 className="w-full p-4 bg-[#121212] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all shadow-inner text-[15px]"
-                                placeholder="Enter manager username"
+                                placeholder="Enter admin username"
                                 required
                             />
                         </div>
@@ -120,9 +120,9 @@ export default function AdminLoginPage() {
 
                 <div className="text-center mt-10 border-t border-white/5 pt-6 space-y-3">
                     <p className="text-sm text-gray-500">
-                        Not a manager?{' '}
+                        Not an admin?{' '}
                         <a href="/login" className="text-gray-400 hover:text-white underline underline-offset-4 decoration-white/20 hover:decoration-white/60 font-medium transition-all">
-                            Back to Technician Login
+                            Back to Agent Login
                         </a>
                     </p>
                 </div>

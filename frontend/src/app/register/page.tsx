@@ -50,7 +50,7 @@ export default function RegisterPage() {
                         <Bot size={32} className="text-[#121212]" />
                     </div>
                     <h2 className="text-3xl font-bold text-white tracking-tight">Create an account</h2>
-                    <p className="text-gray-400 mt-2 text-sm font-medium">Join Valar, the AI Support Assistant</p>
+                    <p className="text-gray-400 mt-2 text-sm font-medium">Join Valar, the AI Support Copilot</p>
                 </div>
 
                 <form onSubmit={handleRegister} className="space-y-6">

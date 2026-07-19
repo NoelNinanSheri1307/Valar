@@ -4,6 +4,8 @@ import requests
 import json
 from dotenv import load_dotenv
 from exa_py import Exa
+from sqlalchemy.orm import Session
+from database import FAQRule, FailedRetrieval
 
 
 from langchain_core.prompts import PromptTemplate
@@ -80,20 +82,24 @@ def ingest_document(file_path: str):
 # RETRIEVAL
 # =========================================================
 
-def retrieve_context(question: str) -> str | None:
+def retrieve_context(question: str) -> tuple[str | None, float]:
     results = vectorstore.similarity_search_with_relevance_scores(
         question,
         k=4,
     )
+
+    highest_score = 0.0
+    if results:
+        highest_score = results[0][1]
 
     relevant_docs = [
         doc for doc, score in results if score >= RELEVANCE_THRESHOLD
     ]
 
     if not relevant_docs:
-        return None
+        return None, highest_score
 
-    return "\n\n".join(doc.page_content for doc in relevant_docs)
+    return "\n\n".join(doc.page_content for doc in relevant_docs), highest_score
 
 # =========================================================
 # GREETING DETECTOR
@@ -123,11 +129,11 @@ def is_greeting(text: str) -> bool:
 prompt = PromptTemplate(
     input_variables=["context", "question"],
     template="""
-You are Valar, a knowledgeable, concise, and professional Enterprise AI Support Assistant.
+You are Valar, a knowledgeable, concise, and professional Enterprise Customer Support Copilot.
 
 You can:
-- Answer technical support, operational procedures, equipment troubleshooting, and company policy questions.
-- Guide technicians and team members using official documentation, manuals, SOPs, and FAQ guidelines.
+- Answer customer support, service procedures, troubleshooting steps, and company policy questions.
+- Guide support agents and team members using official documentation, user manuals, resolution guides, and FAQ guidelines.
 
 Rules:
 1. If the question is about your identity, capabilities, or what you can help with,
@@ -213,11 +219,29 @@ def exa_search_fallback(question: str) -> str:
 # RAG FUNCTION
 # =========================================================
 
-def rag_answer(question: str) -> str:
-    context = retrieve_context(question)
+def rag_answer(question: str, db: Session = None) -> str:
+    # 1. FAQ check
+    if db is not None:
+        try:
+            active_rules = db.query(FAQRule).filter(FAQRule.is_active == True).all()
+            matches = []
+            q_lower = question.lower()
+            for rule in active_rules:
+                if rule.keyword.lower() in q_lower:
+                    matches.append(rule)
+            if matches:
+                # Prefer the longest matching keyword
+                best_match = max(matches, key=lambda r: len(r.keyword))
+                return best_match.response
+        except Exception as e:
+            print(f"Error matching FAQ rules: {e}")
+
+    # 2. Proceed with RAG pipeline
+    context, highest_score = retrieve_context(question)
+    retrieval_failed = (context is None or highest_score < RELEVANCE_THRESHOLD)
 
     if context is None:
-        answer = "I don’t know based on the given context."
+        answer = "Sorry, I don't know based on the given context."
     else:
         chain = (
             {
@@ -241,10 +265,34 @@ def rag_answer(question: str) -> str:
     
     answer_lower = answer.lower()
     
+    # If the answer indicates a context refusal, set retrieval_failed to True
+    if any(trigger in answer_lower for trigger in fallback_triggers):
+        retrieval_failed = True
+
+    fallback_triggered = False
     # If the response indicates lack of context knowledge, completely override it with the fallback
     if any(trigger in answer_lower for trigger in fallback_triggers):
         if is_support_relevant(question):
             extended_query = f"{question} technical support troubleshooting manual"
-            return exa_search_fallback(extended_query)
+            try:
+                fallback_answer = exa_search_fallback(extended_query)
+                answer = fallback_answer
+                fallback_triggered = True
+            except Exception as e:
+                print(f"Exa search fallback failed: {e}")
+
+    # 3. Log FailedRetrieval if retrieval_failed
+    if retrieval_failed and db is not None:
+        try:
+            failed_log = FailedRetrieval(
+                query_text=question,
+                highest_score=highest_score,
+                fallback_triggered=fallback_triggered
+            )
+            db.add(failed_log)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Failed to log retrieval analytics: {e}")
 
     return answer

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Boolean, Float
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime
 
@@ -41,6 +41,24 @@ class ChatMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("ChatSession", back_populates="messages")
+
+class FAQRule(Base):
+    __tablename__ = "faq_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    keyword = Column(String, unique=True, index=True)
+    response = Column(String)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class FailedRetrieval(Base):
+    __tablename__ = "failed_retrievals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    query_text = Column(String)
+    highest_score = Column(Float)
+    fallback_triggered = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 def get_db():
     db = SessionLocal()
