@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UploadComponent from "../../components/Upload";
-import { 
-    ArrowLeft, LayoutDashboard, Database, Settings, FileText, 
+import {
+    ArrowLeft, LayoutDashboard, Database, Settings, FileText,
     Clock, Ticket, BarChart2, HelpCircle, Activity, ChevronRight,
     AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2
 } from "lucide-react";
@@ -34,59 +34,12 @@ export default function AdminPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [files, setFiles] = useState<UploadedFile[]>([]);
-    
+
     // Tab routing state
     const [activeTab, setActiveTab] = useState<'documents' | 'tickets' | 'faq' | 'analytics'>('documents');
-    
+
     // Support tickets state
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
-
-    // Re-index state: filename -> "idle" | "loading" | "done" | "error"
-    const [reindexState, setReindexState] = useState<Record<string, string>>({});
-
-    const handleReindex = async (filename: string) => {
-        if (reindexState[filename] === "loading") return; // prevent duplicate
-        setReindexState(prev => ({ ...prev, [filename]: "loading" }));
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Re-index failed");
-            }
-            // Poll until done (max 120s, every 2s)
-            let attempts = 0;
-            const poll = setInterval(async () => {
-                attempts++;
-                try {
-                    const statusRes = await fetch(
-                        `http://localhost:8000/reindex/${encodeURIComponent(filename)}/status`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    const statusData = await statusRes.json();
-                    if (statusData.status === "done") {
-                        clearInterval(poll);
-                        setReindexState(prev => ({ ...prev, [filename]: "done" }));
-                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 4000);
-                    } else if (statusData.status === "error") {
-                        clearInterval(poll);
-                        setReindexState(prev => ({ ...prev, [filename]: `error:${statusData.detail}` }));
-                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
-                    } else if (attempts >= 60) {
-                        clearInterval(poll);
-                        setReindexState(prev => ({ ...prev, [filename]: "error:Timed out" }));
-                        setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
-                    }
-                } catch { /* network hiccup, keep polling */ }
-            }, 2000);
-        } catch (err: any) {
-            setReindexState(prev => ({ ...prev, [filename]: `error:${err.message}` }));
-            setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 5000);
-        }
-    };
 
     const fetchFiles = async () => {
         try {
@@ -112,21 +65,21 @@ export default function AdminPage() {
             const seedTickets: SupportTicket[] = [
                 {
                     id: "TKT-3120",
-                    subject: "Main compressor valve pressure drop",
-                    description: "High pressure warning triggered on compressor C-04 after standard maintenance run. Technicians need documentation on pressure tolerance.",
+                    subject: "Refund approval permission setup",
+                    description: "Refund request for client transaction TXN-8291 exceeds local agent limit ($500). Customer Support agent needs documentation on senior supervisor authorization procedure.",
                     priority: "High",
                     status: "Open",
                     createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-                    user: "Operator_A"
+                    user: "Agent_A"
                 },
                 {
                     id: "TKT-2490",
-                    subject: "Network timeout in assembly terminal 5",
-                    description: "Interface fails to load configuration from local server on reboot. Suggest diagnostics procedure.",
+                    subject: "Email routing failure for billing domain",
+                    description: "Incoming support queries from billing domain are bypassing Zendesk routing queues and going to dead-letter folder. Please review filter configurations.",
                     priority: "Medium",
                     status: "In Progress",
                     createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-                    user: "Tech_Support"
+                    user: "Agent_Support"
                 }
             ];
             localStorage.setItem("support_tickets", JSON.stringify(seedTickets));
@@ -161,6 +114,8 @@ export default function AdminPage() {
             setLoading(false);
             fetchFiles();
             loadTickets();
+            fetchFaqs();
+            fetchAnalytics();
         }
     }, [router]);
 
@@ -189,12 +144,12 @@ export default function AdminPage() {
             <div className="w-full max-w-5xl p-6 md:p-10 flex flex-col gap-6 flex-1">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-bold text-white tracking-tight">AI Support Console</h1>
-                    <p className="text-gray-400 text-sm">Empower your technicians and support managers with document intelligence and tickets tracking.</p>
+                    <p className="text-gray-400 text-sm">Empower your support agents and administrators with document intelligence and tickets tracking.</p>
                 </div>
 
                 {/* Tabs Bar */}
                 <div className="flex border-b border-white/5 gap-6 text-sm text-gray-400 mt-2">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('documents')}
                         className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'documents' ? "text-purple-400 font-semibold" : "hover:text-white")}
                     >
@@ -202,8 +157,8 @@ export default function AdminPage() {
                         Knowledge Documents
                         {activeTab === 'documents' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
                     </button>
-                    
-                    <button 
+
+                    <button
                         onClick={() => setActiveTab('tickets')}
                         className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'tickets' ? "text-purple-400 font-semibold" : "hover:text-white")}
                     >
@@ -216,8 +171,8 @@ export default function AdminPage() {
                         )}
                         {activeTab === 'tickets' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
                     </button>
-                    
-                    <button 
+
+                    <button
                         onClick={() => setActiveTab('faq')}
                         className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'faq' ? "text-purple-400 font-semibold" : "hover:text-white")}
                     >
@@ -225,8 +180,8 @@ export default function AdminPage() {
                         FAQ Canned Layer
                         {activeTab === 'faq' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
                     </button>
-                    
-                    <button 
+
+                    <button
                         onClick={() => setActiveTab('analytics')}
                         className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'analytics' ? "text-purple-400 font-semibold" : "hover:text-white")}
                     >
@@ -238,7 +193,7 @@ export default function AdminPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
                     <div className="lg:col-span-2 flex flex-col gap-6">
-                        
+
                         {/* TAB 1: Documents Management */}
                         {activeTab === 'documents' && (
                             <>
@@ -316,7 +271,7 @@ export default function AdminPage() {
                                     <Ticket size={18} className="text-purple-400" />
                                     Active Support Tickets ({tickets.length})
                                 </h3>
-                                
+
                                 {tickets.length === 0 ? (
                                     <div className="text-center py-12 text-gray-500 text-sm">No support tickets filed yet.</div>
                                 ) : (
@@ -332,17 +287,17 @@ export default function AdminPage() {
                                                         <span className={cn(
                                                             "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
                                                             t.priority === "Urgent" ? "bg-red-500/10 text-red-500 border border-red-500/20" :
-                                                            t.priority === "High" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
-                                                            t.priority === "Medium" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" :
-                                                            "bg-gray-500/10 text-gray-400 border border-gray-500/20"
+                                                                t.priority === "High" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
+                                                                    t.priority === "Medium" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" :
+                                                                        "bg-gray-500/10 text-gray-400 border border-gray-500/20"
                                                         )}>
                                                             {t.priority}
                                                         </span>
                                                         <span className={cn(
                                                             "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
                                                             t.status === "Resolved" ? "bg-green-500/10 text-green-400 border border-green-500/20" :
-                                                            t.status === "In Progress" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" :
-                                                            "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                                                t.status === "In Progress" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" :
+                                                                    "bg-purple-500/10 text-purple-400 border border-purple-500/20"
                                                         )}>
                                                             {t.status}
                                                         </span>
@@ -350,7 +305,7 @@ export default function AdminPage() {
                                                 </div>
 
                                                 <p className="text-xs text-gray-300 leading-relaxed font-sans">{t.description}</p>
-                                                
+
                                                 <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1 text-[11px] text-gray-500">
                                                     <div className="flex items-center gap-1">
                                                         <Clock size={12} />
@@ -358,7 +313,7 @@ export default function AdminPage() {
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         {t.status !== "In Progress" && t.status !== "Resolved" && (
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleUpdateTicketStatus(t.id, "In Progress")}
                                                                 className="px-2 py-1 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 rounded font-semibold transition-colors"
                                                             >
@@ -366,14 +321,14 @@ export default function AdminPage() {
                                                             </button>
                                                         )}
                                                         {t.status !== "Resolved" && (
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleUpdateTicketStatus(t.id, "Resolved")}
                                                                 className="px-2 py-1 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded font-semibold transition-colors"
                                                             >
                                                                 Mark Resolved
                                                             </button>
                                                         )}
-                                                        <button 
+                                                        <button
                                                             onClick={() => handleDeleteTicket(t.id)}
                                                             className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-colors"
                                                             title="Delete Ticket"
@@ -389,7 +344,7 @@ export default function AdminPage() {
                             </div>
                         )}
 
-                        {/* TAB 3: FAQ Canned Layer (Placeholder UI) */}
+                        {/* TAB 3: FAQ Canned Layer (Integrated UI) */}
                         {activeTab === 'faq' && (
                             <div className="bg-[#1e1e1e] border border-white/5 rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[400px]">
                                 <div className="border-b border-white/5 pb-4 mb-4">
@@ -404,41 +359,82 @@ export default function AdminPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-[11px] text-gray-400 mb-1">Matching Keyword/Phrase</label>
-                                            <input type="text" placeholder="e.g. fire emergency, evac protocol" className="w-full text-xs p-2.5 bg-[#2a2a2a] border border-white/10 rounded-lg focus:outline-none text-white focus:border-purple-500 animate-none" />
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. fire emergency, evac protocol"
+                                                value={newKeyword}
+                                                onChange={(e) => setNewKeyword(e.target.value)}
+                                                className="w-full text-xs p-2.5 bg-[#2a2a2a] border border-white/10 rounded-lg focus:outline-none text-white focus:border-purple-500 animate-none"
+                                            />
                                         </div>
                                         <div>
                                             <label className="block text-[11px] text-gray-400 mb-1">Cache Status</label>
-                                            <select className="w-full text-xs p-2.5 bg-[#2a2a2a] border border-white/10 rounded-lg focus:outline-none text-white focus:border-purple-500">
-                                                <option>Active / Low Latency Router</option>
-                                                <option>Bypass / Draft Mode</option>
+                                            <select
+                                                value={newIsActive ? "Active" : "Bypass"}
+                                                onChange={(e) => setNewIsActive(e.target.value === "Active")}
+                                                className="w-full text-xs p-2.5 bg-[#2a2a2a] border border-white/10 rounded-lg focus:outline-none text-white focus:border-purple-500"
+                                            >
+                                                <option value="Active">Active / Low Latency Router</option>
+                                                <option value="Bypass">Bypass / Draft Mode</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-[11px] text-gray-400 mb-1">Canned Output Response</label>
-                                        <textarea rows={3} placeholder="Paste deterministic message text to display..." className="w-full text-xs p-2.5 bg-[#2a2a2a] border border-white/10 rounded-lg focus:outline-none text-white focus:border-purple-500 resize-none"></textarea>
+                                        <textarea
+                                            rows={3}
+                                            placeholder="Paste deterministic message text to display..."
+                                            value={newResponse}
+                                            onChange={(e) => setNewResponse(e.target.value)}
+                                            className="w-full text-xs p-2.5 bg-[#2a2a2a] border border-white/10 rounded-lg focus:outline-none text-white focus:border-purple-500 resize-none"
+                                        ></textarea>
                                     </div>
                                     <div className="flex justify-end">
-                                        <button onClick={() => alert("FAQ rules additions - teammate placeholder")} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors">
+                                        <button
+                                            onClick={handleAddFaq}
+                                            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors"
+                                        >
                                             Add Rule
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    <div className="text-xs font-semibold text-gray-400 mb-1 flex items-center gap-1">Active Rules</div>
-                                    <div className="p-3 bg-white/5 border border-white/5 rounded-lg flex items-center justify-between text-xs">
-                                        <div className="space-y-1">
-                                            <div className="font-semibold text-purple-300">"safety lead contact"</div>
-                                            <div className="text-gray-400">Response: Contact Safety Supervisor at extension #4101 in Sector 3...</div>
+                                    <div className="text-xs font-semibold text-gray-400 mb-1 flex items-center gap-1">Active Rules ({faqs.length})</div>
+                                    {faqs.length === 0 ? (
+                                        <div className="text-center py-6 text-gray-500 text-xs">No active rules. Add one above.</div>
+                                    ) : (
+                                        <div className="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
+                                            {faqs.map((faq) => (
+                                                <div key={faq.id} className="p-3 bg-white/5 border border-white/5 rounded-lg flex items-center justify-between text-xs hover:bg-white/10 transition-colors">
+                                                    <div className="space-y-1 overflow-hidden mr-4">
+                                                        <div className="font-semibold text-purple-300 truncate">"{faq.keyword}"</div>
+                                                        <div className="text-gray-400 whitespace-pre-wrap">{faq.response}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        <span className={cn(
+                                                            "text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-bold",
+                                                            faq.is_active ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                                                        )}>
+                                                            {faq.is_active ? "Cached" : "Bypassed"}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => handleDeleteFaq(faq.id)}
+                                                            className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-colors"
+                                                            title="Delete Rule"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <span className="text-[10px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded border border-green-500/20 uppercase tracking-wider font-bold">Cached</span>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         )}
 
-                        {/* TAB 4: Analytics & Gap Analysis (Placeholder UI) */}
+                        {/* TAB 4: Analytics & Gap Analysis (Integrated UI) */}
                         {activeTab === 'analytics' && (
                             <div className="bg-[#1e1e1e] border border-white/5 rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[400px]">
                                 <div className="border-b border-white/5 pb-4 mb-4">
@@ -446,19 +442,19 @@ export default function AdminPage() {
                                         <BarChart2 size={18} className="text-purple-400" />
                                         Knowledge Gap Analytics
                                     </h3>
-                                    <p className="text-xs text-gray-500 mt-1">Discover what technicians are asking that the knowledge base cannot currently answer.</p>
+                                    <p className="text-xs text-gray-500 mt-1">Discover what support agents are asking that the knowledge base cannot currently answer.</p>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-4 mb-6">
                                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col">
                                         <span className="text-gray-400 text-xs font-medium">Failed Retrievals</span>
-                                        <span className="text-2xl font-bold text-red-400 mt-1">18.4%</span>
+                                        <span className="text-2xl font-bold text-red-400 mt-1">{analyticsData.failed_rate}</span>
                                         <span className="text-[10px] text-gray-500 mt-1">LLM Fallback Search Rate</span>
                                     </div>
                                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col">
-                                        <span className="text-gray-400 text-xs font-medium">Thumbs Down Feedbacks</span>
-                                        <span className="text-2xl font-bold text-amber-400 mt-1">8</span>
-                                        <span className="text-[10px] text-gray-500 mt-1">Technician reports on RAG</span>
+                                        <span className="text-gray-400 text-xs font-medium">Total Failed Queries</span>
+                                        <span className="text-2xl font-bold text-amber-400 mt-1">{analyticsData.total_failed}</span>
+                                        <span className="text-[10px] text-gray-500 mt-1">Total recorded gaps</span>
                                     </div>
                                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col">
                                         <span className="text-gray-400 text-xs font-medium">Tickets Escalated</span>
@@ -468,17 +464,24 @@ export default function AdminPage() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <div className="text-xs font-semibold text-gray-400 flex items-center gap-1">Top Unanswered Queries (Identified Gaps)</div>
-                                    <div className="space-y-2">
-                                        <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg flex items-center justify-between text-xs">
-                                            <span className="font-semibold text-gray-200">"Pump A secondary valve pressure specs"</span>
-                                            <span className="text-[10px] text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded font-bold">Unindexed (4 requests)</span>
+                                    <div className="text-xs font-semibold text-gray-400 flex items-center gap-1">Top Unanswered Queries ({analyticsData.gaps.length})</div>
+                                    {analyticsData.gaps.length === 0 ? (
+                                        <div className="text-center py-8 text-gray-500 text-xs">No failed retrievals recorded yet.</div>
+                                    ) : (
+                                        <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                                            {analyticsData.gaps.map((gap, index) => (
+                                                <div key={index} className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg flex-col sm:flex-row flex sm:items-center justify-between text-xs hover:bg-red-500/10 transition-colors gap-2">
+                                                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                                                        <span className="font-semibold text-gray-200 truncate">"{gap.query_text}"</span>
+                                                        <span className="text-[10px] text-gray-500">Last match attempt score: {gap.highest_score.toFixed(4)} • {new Date(gap.created_at).toLocaleString()}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-red-400 bg-red-400/10 px-2 py-0.5 rounded font-bold flex-shrink-0 self-start sm:self-center">
+                                                        Unindexed ({gap.failure_count} {gap.failure_count === 1 ? 'request' : 'requests'})
+                                                    </span>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg flex items-center justify-between text-xs">
-                                            <span className="font-semibold text-gray-200">"boiler 3 inspection results june 2026"</span>
-                                            <span className="text-[10px] text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded font-bold">Unindexed (3 requests)</span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         )}

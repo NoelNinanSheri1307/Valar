@@ -50,7 +50,7 @@ export default function AdminRegisterPage() {
                     <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-6 border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.05)] transition-transform hover:scale-105 duration-300">
                         <ShieldCheck size={32} className="text-white" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Manager Registration</h2>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">Admin Registration</h2>
                     <p className="text-gray-400 mt-2 text-sm font-medium">Create a new privileged account</p>
                 </div>
 
@@ -63,7 +63,7 @@ export default function AdminRegisterPage() {
 
                     <div className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Manager Username</label>
+                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Admin Username</label>
                             <input
                                 type="text"
                                 value={username}
@@ -96,7 +96,7 @@ export default function AdminRegisterPage() {
                         >
                             {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
                                 <>
-                                    Create Manager Account
+                                    Create Admin Account
                                     <UserPlus size={18} />
                                 </>
                             )}
@@ -106,7 +106,7 @@ export default function AdminRegisterPage() {
 
                 <div className="text-center mt-10 border-t border-white/5 pt-6">
                     <p className="text-sm text-gray-500">
-                        Already have a manager account?{' '}
+                        Already have an admin account?{' '}
                         <a href="/ops_admin/login" className="text-gray-400 hover:text-white underline underline-offset-4 decoration-white/20 hover:decoration-white/60 font-medium transition-all">
                             Log in here
                         </a>

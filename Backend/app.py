@@ -6,9 +6,10 @@ from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, B
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 
-from database import engine, Base, get_db, User, ChatSession, ChatMessage
+from database import engine, Base, get_db, User, ChatSession, ChatMessage, FAQRule, FailedRetrieval
 from datetime import datetime
 from auth import (
     get_password_hash,
@@ -29,8 +30,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Industrial Knowledge Graph & RAG API",
-    description="Industrial AI Copilot backend with Auth & Roles",
+    title="Valar - Support Agent Copilot API",
+    description="Backend RAG API for Valar Customer Support Copilot",
     version="2.0.0",
 )
 
@@ -73,6 +74,31 @@ class ChatSessionResponse(BaseModel):
     created_at: datetime
     
     model_config = {"from_attributes": True}
+
+class FAQRuleCreate(BaseModel):
+    keyword: str
+    response: str
+    is_active: bool = True
+
+class FAQRuleResponse(BaseModel):
+    id: int
+    keyword: str
+    response: str
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+class GapQueryAnalyticsResponse(BaseModel):
+    query_text: str
+    failure_count: int
+    highest_score: float
+    created_at: str
+
+class AnalyticsGapsResponse(BaseModel):
+    failed_rate: str
+    total_failed: int
+    gaps: list[GapQueryAnalyticsResponse]
 
 # -------------------------
 # Auth Endpoints
@@ -254,9 +280,10 @@ def get_reindex_status(
 @app.post("/ask")
 def ask_rag_deprecated(
     query: QueryRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    answer = rag_answer(query.question)
+    answer = rag_answer(query.question, db)
     return {
         "question": query.question,
         "answer": answer,
@@ -309,7 +336,7 @@ def ask_rag_session(
 
     # Call RAG
     try:
-        answer = rag_answer(query.question)
+        answer = rag_answer(query.question, db)
     except Exception as e:
         answer = f"Error generating response: {str(e)}"
     
@@ -331,6 +358,90 @@ def delete_session(session_id: int, current_user: User = Depends(get_current_use
     db.delete(session)
     db.commit()
     return
+
+# -------------------------
+# FAQ Management (Admin/Manager Only)
+# -------------------------
+
+@app.get("/faq", response_model=list[FAQRuleResponse])
+def get_faq_rules(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    return db.query(FAQRule).all()
+
+@app.post("/faq", response_model=FAQRuleResponse, status_code=status.HTTP_201_CREATED)
+def create_faq_rule(
+    rule: FAQRuleCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    # check case-insensitive exact keyword match to avoid duplicate keywords
+    existing = db.query(FAQRule).filter(func.lower(FAQRule.keyword) == func.lower(rule.keyword)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="FAQ rule with this keyword already exists")
+    db_rule = FAQRule(
+        keyword=rule.keyword,
+        response=rule.response,
+        is_active=rule.is_active
+    )
+    db.add(db_rule)
+    db.commit()
+    db.refresh(db_rule)
+    return db_rule
+
+@app.delete("/faq/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_faq_rule(
+    id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    db_rule = db.query(FAQRule).filter(FAQRule.id == id).first()
+    if not db_rule:
+        raise HTTPException(status_code=404, detail="FAQ rule not found")
+    db.delete(db_rule)
+    db.commit()
+    return
+
+# -------------------------
+# Analytics & Knowledge Gaps (Admin/Manager Only)
+# -------------------------
+
+@app.get("/analytics/gaps", response_model=AnalyticsGapsResponse)
+def get_analytics_gaps(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    # Calculate failed retrieval rate
+    total_queries = db.query(ChatMessage).filter(ChatMessage.role == "user").count()
+    total_failed = db.query(FailedRetrieval).count()
+    
+    failed_rate = 0.0
+    if total_queries > 0:
+        failed_rate = (total_failed / total_queries) * 100
+        
+    # Group failed retrievals by query_text
+    gaps_query = db.query(
+        FailedRetrieval.query_text,
+        func.count(FailedRetrieval.id).label("failure_count"),
+        func.max(FailedRetrieval.highest_score).label("highest_score"),
+        func.max(FailedRetrieval.created_at).label("created_at")
+    ).group_by(FailedRetrieval.query_text).order_by(func.count(FailedRetrieval.id).desc()).all()
+    
+    gaps_list = []
+    for row in gaps_query:
+        gaps_list.append({
+            "query_text": row.query_text,
+            "failure_count": row.failure_count,
+            "highest_score": row.highest_score if row.highest_score is not None else 0.0,
+            "created_at": row.created_at.isoformat() if row.created_at else ""
+        })
+        
+    return {
+        "failed_rate": f"{failed_rate:.1f}%",
+        "total_failed": total_failed,
+        "gaps": gaps_list
+    }
 
 @app.get("/")
 def health_check():
