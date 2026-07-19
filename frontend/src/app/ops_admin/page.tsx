@@ -295,7 +295,7 @@ export default function AdminPage() {
         const token = localStorage.getItem('token');
         const role = localStorage.getItem('role');
 
-        if (!token || role !== 'manager') {
+        if (!token) {
             router.push('/');
         } else {
             setLoading(false);
@@ -343,7 +343,7 @@ export default function AdminPage() {
             </div>
 
             {/* Dashboard Content */}
-            <div className="w-full max-w-5xl p-6 md:p-10 flex flex-col gap-6 flex-1">
+            <div className="w-full max-w-6xl p-6 md:p-12 flex flex-col gap-8 flex-1">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-bold text-white tracking-tight">AI Support Console</h1>
                     <p className="text-gray-400 text-sm">Empower your support agents and administrators with document intelligence and tickets tracking.</p>
@@ -393,7 +393,7 @@ export default function AdminPage() {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.85fr)_minmax(340px,0.95fr)] gap-8 flex-1 min-h-0">
                     <div className="lg:col-span-2 flex flex-col gap-6">
 
                         {/* TAB 1: Documents Management */}

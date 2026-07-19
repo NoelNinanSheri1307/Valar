@@ -17,12 +17,12 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://localhost:8000/register', {
+            const res = await fetch('http://localhost:8000/register_admin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password, role: 'technician' }),
+                body: JSON.stringify({ username, password, role: 'manager' }),
             });
 
             if (!res.ok) {

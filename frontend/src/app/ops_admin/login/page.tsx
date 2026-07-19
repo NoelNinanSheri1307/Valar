@@ -45,6 +45,7 @@ export default function AdminLoginPage() {
             }
 
             localStorage.setItem('token', data.access_token);
+            localStorage.setItem('username', username);
             localStorage.setItem('role', userData.role);
 
             router.push('/ops_admin');

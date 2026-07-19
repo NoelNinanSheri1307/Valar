@@ -24,6 +24,11 @@ type ChatSession = {
     created_at: string;
 };
 
+type ParsedSource = {
+    title: string;
+    uri: string;
+};
+
 const SUGGESTED_QUERIES = [
     { text: "How do I configure automatic email routing for support tickets?", icon: Briefcase, label: "Ticket routing" },
     { text: "What is the standard escalation policy for urgent complaints?", icon: BookOpen, label: "Escalation policy" },
@@ -37,6 +42,85 @@ const PLACEHOLDERS = [
     "Show me safety procedures for...",
     "What is the policy for..."
 ];
+
+const FOLLOW_UP_STOP_WORDS = new Set([
+    "the", "and", "for", "with", "from", "that", "this", "what", "when", "where", "which",
+    "how", "can", "does", "do", "is", "are", "was", "were", "to", "of", "in", "on", "a",
+    "an", "by", "at", "or", "as", "it", "be", "about", "please", "show", "tell", "give",
+]);
+
+const stripExtension = (value: string) => value.replace(/\.[^/.]+$/, "");
+
+const normalizeLabel = (value: string) =>
+    stripExtension(value)
+        .replace(/[\-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const extractKeywords = (value: string, limit = 3) => {
+    const words = value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((word) => word.length > 3 && !FOLLOW_UP_STOP_WORDS.has(word));
+
+    return Array.from(new Set(words)).slice(0, limit);
+};
+
+const extractDocumentSections = (content: string) => {
+    const sourcesMatch = content.match(/\*\*Sources:\*\*\s*\n([\s\S]+)/);
+    const relatedMatch = content.match(/\*\*Related Documents:\*\*\s*\n([\s\S]+)/);
+
+    return {
+        sources: parseMarkdownList(sourcesMatch?.[1] || ""),
+        relatedDocuments: parsePlainList(relatedMatch?.[1] || ""),
+    };
+};
+
+const parseMarkdownList = (block: string): ParsedSource[] => {
+    const sources: ParsedSource[] = [];
+    const sourceRegex = /-\s+\[(.*?)\]\((.*?)\)/g;
+    let match;
+
+    while ((match = sourceRegex.exec(block)) !== null) {
+        sources.push({ title: match[1], uri: match[2] });
+    }
+
+    return sources;
+};
+
+const parsePlainList = (block: string) => {
+    return block
+        .split("\n")
+        .map((line) => line.replace(/^[-*]\s*/, "").trim())
+        .filter(Boolean);
+};
+
+const buildFollowUpSuggestions = (answer: string, userQuestion: string, documentNames: string[]) => {
+    const suggestions: string[] = [];
+    const primaryDocument = normalizeLabel(documentNames[0] || "");
+    const secondaryDocument = normalizeLabel(documentNames[1] || "");
+    const questionKeywords = extractKeywords(userQuestion, 2);
+    const answerKeywords = extractKeywords(answer, 3);
+    const topic = questionKeywords[0] || answerKeywords[0] || "this document";
+
+    if (primaryDocument) {
+        suggestions.push(`Summarize the key points from ${primaryDocument}.`);
+        suggestions.push(`What actions, requirements, or deadlines are mentioned in ${primaryDocument}?`);
+    }
+
+    if (primaryDocument && secondaryDocument) {
+        suggestions.push(`Compare the guidance in ${primaryDocument} and ${secondaryDocument}.`);
+    } else if (primaryDocument) {
+        suggestions.push(`Which part of ${primaryDocument} is most relevant to ${topic}?`);
+    }
+
+    if (!suggestions.length) {
+        suggestions.push(`What does the uploaded document say about ${topic}?`);
+    }
+
+    return Array.from(new Set(suggestions)).slice(0, 3);
+};
 
 interface ChatInterfaceProps {
     role?: string | null;
@@ -67,7 +151,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
     const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
-    const [username, setUsername] = useState("User");
+    const [username, setUsername] = useState("");
 
     const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
         setToast({ message, type });
@@ -77,8 +161,56 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         const stored = localStorage.getItem("username");
         if (stored) {
             setUsername(stored);
+            return;
         }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return;
+        }
+
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch('http://localhost:8000/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.username) {
+                        localStorage.setItem('username', data.username);
+                        setUsername(data.username);
+                    }
+                }
+            } catch {
+                // Keep the fallback empty state if the profile call fails.
+            }
+        };
+
+        fetchProfile();
     }, []);
+
+    const profileInitial = (username.trim().charAt(0) || 'U').toUpperCase();
+    const latestAssistantMessage = [...messages].reverse().find((message) => message.role === 'assistant');
+    const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+    const extractedSections = latestAssistantMessage ? extractDocumentSections(latestAssistantMessage.content) : { sources: [], relatedDocuments: [] };
+    const followUpSuggestions = latestAssistantMessage
+        ? buildFollowUpSuggestions(
+            latestAssistantMessage.content,
+            latestUserMessage?.content || "",
+            extractedSections.relatedDocuments.length > 0
+                ? extractedSections.relatedDocuments
+                : extractedSections.sources.map((source) => source.title)
+        )
+        : [];
+
+    const clearConversation = () => {
+        setMessages([]);
+        setCurrentSessionId(null);
+        setInput("");
+        setIsExportMenuOpen(false);
+        setSessionToDelete(null);
+    };
 
     useEffect(() => {
         if (toast) {
@@ -274,8 +406,10 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
     const renderMessageContent = (content: string) => {
         const sourcesMatch = content.match(/\*\*Sources:\*\*\s*\n([\s\S]+)/);
+        const relatedMatch = content.match(/\*\*Related Documents:\*\*\s*\n([\s\S]+)/);
         let mainContent = content;
         const sources: { title: string, uri: string }[] = [];
+        const relatedDocuments: string[] = [];
 
         if (sourcesMatch) {
             mainContent = content.replace(sourcesMatch[0], '').trim();
@@ -285,6 +419,16 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             while ((match = sourceRegex.exec(sourcesText)) !== null) {
                 sources.push({ title: match[1], uri: match[2] });
             }
+        }
+
+        if (relatedMatch) {
+            mainContent = mainContent.replace(relatedMatch[0], '').trim();
+            const relatedText = relatedMatch[1];
+            relatedText
+                .split('\n')
+                .map((line) => line.replace(/^[-*]\s*/, '').trim())
+                .filter(Boolean)
+                .forEach((item) => relatedDocuments.push(item));
         }
 
         return (
@@ -322,7 +466,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             td: (props) => <td className="p-3 border-b border-white/5 last:border-0" {...props} />,
                         }}
                     >
-                        {mainContent}
+                        {mainContent.replace(/\[\d+\]/g, '')}
                     </ReactMarkdown>
                 </div>
 
@@ -354,6 +498,25 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         </div>
                     </div>
                 )}
+
+                {relatedDocuments.length > 0 && (
+                    <div className="w-full mt-5 border-t border-white/10 pt-4">
+                        <div className="text-xs font-semibold text-gray-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+                            <BookOpen size={13} className="text-gray-400" />
+                            Related Documents
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {relatedDocuments.map((documentName, i) => (
+                                <div
+                                    key={i}
+                                    className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300"
+                                >
+                                    {documentName}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
@@ -371,11 +534,11 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             {/* Sidebar */}
             <div
                 className={cn(
-                    "fixed inset-y-0 left-0 z-40 w-[260px] bg-[#171717] transform transition-all duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col border-r border-white/5",
+                    "fixed inset-y-0 left-0 z-40 w-[300px] bg-[#171717] transform transition-all duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col border-r border-white/5",
                     !sidebarOpen && "-translate-x-full md:w-0 md:opacity-0 md:border-none overflow-hidden"
                 )}
             >
-                <div className="flex flex-col h-full p-3 w-[260px]">
+                <div className="flex flex-col h-full p-3 w-[300px]">
                     <div className="flex items-center justify-between mb-4 md:hidden text-gray-400 px-1 pt-1">
                         <span className="font-semibold text-white">Menu</span>
                         <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-white/10 rounded-md transition-colors" title="Close Sidebar">
@@ -453,10 +616,12 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         </div>
 
                         <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg uppercase">
-                                {username.charAt(0)}
+                            <div className="w-8 h-8 rounded-full bg-white text-[#121212] border border-white/15 flex items-center justify-center font-bold text-sm shadow-lg uppercase">
+                                {profileInitial}
                             </div>
-                            <div className="text-sm font-medium text-gray-200 truncate max-w-[150px]">{username}</div>
+                            <div className="text-sm font-medium text-gray-200 truncate max-w-[150px]">
+                                {username || 'Signed in user'}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -482,14 +647,12 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
 
                     {/* Quick Support Actions */}
                     <div className="flex items-center gap-2">
-                        {role === 'manager' && (
-                            <button
-                                onClick={() => router.push('/ops_admin')}
-                                className="bg-white/10 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-white/20 transition-all border border-white/10"
-                            >
-                                Support Dashboard
-                            </button>
-                        )}
+                        <button
+                            onClick={() => router.push('/ops_admin')}
+                            className="bg-white/10 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-white/20 transition-all border border-white/10"
+                        >
+                            Support Dashboard
+                        </button>
 
                         {messages.length > 0 && (
                             <div className="relative">
@@ -529,6 +692,17 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 )}
                             </div>
                         )}
+
+                        {messages.length > 0 && (
+                            <button
+                                onClick={clearConversation}
+                                className="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-white/10"
+                                title="Clear current conversation"
+                            >
+                                <Trash2 size={14} />
+                                Clear Chat
+                            </button>
+                        )}
                         
                         <button
                             onClick={() => setIsTicketModalOpen(true)}
@@ -553,7 +727,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                 {/* Messages Area */}
                 {messages.length > 0 && (
                     <div className="flex-1 overflow-y-auto custom-scrollbar w-full flex flex-col items-center">
-                        <div className="flex flex-col w-full max-w-3xl pb-4 pt-4 px-4 md:px-0">
+                        <div className="flex flex-col w-full max-w-4xl pb-4 pt-4 px-4 md:px-0">
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={cn("flex w-full mt-6 first:mt-0", msg.role === 'user' ? "justify-end" : "justify-start")}>
                                     {msg.role === 'user' ? (
@@ -618,18 +792,15 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                 {idx === messages.length - 1 && (
                                                     <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                                         <span className="text-xs text-gray-500 self-center">Follow-ups:</span>
-                                                        <button 
-                                                            onClick={() => setInput("Can you show me the step-by-step troubleshooting guide for this?")}
-                                                            className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300 hover:bg-white/10 transition-all font-medium"
-                                                        >
-                                                            Get step-by-step troubleshooting guide
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setInput("What are the standard safety procedures when handling this error?")}
-                                                            className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300 hover:bg-white/10 transition-all font-medium"
-                                                        >
-                                                            Standard safety procedures
-                                                        </button>
+                                                        {followUpSuggestions.map((suggestion, suggestionIndex) => (
+                                                            <button
+                                                                key={suggestionIndex}
+                                                                onClick={() => setInput(suggestion)}
+                                                                className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300 hover:bg-white/10 transition-all font-medium"
+                                                            >
+                                                                {suggestion}
+                                                            </button>
+                                                        ))}
                                                         <button 
                                                             onClick={() => setIsTicketModalOpen(true)}
                                                             className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-full px-3 py-1 hover:bg-purple-500/20 transition-all flex items-center gap-1 font-medium"
@@ -650,7 +821,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                         <div className="w-8 h-8 md:w-9 md:h-9 bg-white rounded-full flex items-center justify-center text-[#212121] flex-shrink-0 mt-1 shadow-sm border border-white/10">
                                             <Bot size={18} />
                                         </div>
-                                        <div className="flex flex-col gap-3 w-full max-w-2xl mt-1.5">
+                                        <div className="flex flex-col gap-3 w-full max-w-4xl mt-1.5">
                             <div className="flex items-center gap-3">
                                                 <span className="text-gray-300 font-medium text-[15px] animate-pulse">Searching sources</span>
                                                 <div className="flex -space-x-2">
@@ -678,11 +849,21 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     "w-full px-4 md:px-0 flex flex-col items-center z-20 shrink-0 transition-all duration-500",
                     messages.length === 0 ? "flex-1 justify-center mt-[-8vh]" : "bg-[#212121] pt-4 pb-6 justify-end"
                 )}>
-                    <div className="w-full max-w-3xl relative flex flex-col items-center">
+                    <div className="w-full max-w-5xl relative flex flex-col items-center">
                         {messages.length === 0 && (
-                            <h2 className="text-3xl md:text-4xl font-medium text-white mb-8 tracking-tight text-center">
-                                How can I help you today?
-                            </h2>
+                            <div className="flex flex-col items-center gap-5 mb-8">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full animate-in fade-in slide-in-from-top-3 duration-500">
+                                    <span className="text-[11px] font-semibold text-purple-300 tracking-wide uppercase">How it works</span>
+                                    <span className="text-[11px] text-gray-400">Upload docs in Dashboard</span>
+                                    <span className="text-gray-600">&#8594;</span>
+                                    <span className="text-[11px] text-gray-400">Ask Valar anything</span>
+                                    <span className="text-gray-600">&#8594;</span>
+                                    <span className="text-[11px] text-gray-400">Get instant answers</span>
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-medium text-white tracking-tight text-center">
+                                    How can I help you today?
+                                </h2>
+                            </div>
                         )}
 
                         <style>{`

@@ -62,6 +62,10 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_overlap=200,
 )
 
+def _normalize_source_label(source_path: str) -> str:
+    filename = os.path.basename(str(source_path))
+    return os.path.splitext(filename)[0].replace("_", " ").replace("-", " ").strip()
+
 def ingest_document(file_path: str):
     """
     Load a file (PDF, TXT, DOCX, DOC), split it, and add to vectorstore.
@@ -94,13 +98,15 @@ def ingest_document(file_path: str):
 # RETRIEVAL
 # =========================================================
 
-def retrieve_context(question: str) -> tuple[str | None, float]:
+def retrieve_context(question: str) -> tuple[str | None, list[str], float]:
     results = vectorstore.similarity_search_with_relevance_scores(
         question,
         k=4,
     )
 
     highest_score = 0.0
+    source_labels: list[str] = []
+    seen_sources: set[str] = set()
     if results:
         highest_score = results[0][1]
 
@@ -108,10 +114,23 @@ def retrieve_context(question: str) -> tuple[str | None, float]:
         doc for doc, score in results if score >= RELEVANCE_THRESHOLD
     ]
 
-    if not relevant_docs:
-        return None, highest_score
+    for doc, score in results:
+        if score < RELEVANCE_THRESHOLD:
+            continue
 
-    return "\n\n".join(doc.page_content for doc in relevant_docs), highest_score
+        source_path = doc.metadata.get("source") if hasattr(doc, "metadata") else None
+        if not source_path:
+            continue
+
+        label = _normalize_source_label(source_path)
+        if label and label not in seen_sources:
+            seen_sources.add(label)
+            source_labels.append(label)
+
+    if not relevant_docs:
+        return None, source_labels, highest_score
+
+    return "\n\n".join(doc.page_content for doc in relevant_docs), source_labels, highest_score
 
 # =========================================================
 # GREETING DETECTOR
@@ -249,7 +268,7 @@ def rag_answer(question: str, db: Session = None) -> str:
             print(f"Error matching FAQ rules: {e}")
 
     # 2. Proceed with RAG pipeline
-    context, highest_score = retrieve_context(question)
+    context, source_labels, highest_score = retrieve_context(question)
     retrieval_failed = (context is None or highest_score < RELEVANCE_THRESHOLD)
 
     if context is None:
@@ -265,6 +284,11 @@ def rag_answer(question: str, db: Session = None) -> str:
             | StrOutputParser()
         )
         answer = chain.invoke(question)
+
+        if source_labels and "**Related Documents:**" not in answer:
+            answer = answer.rstrip() + "\n\n**Related Documents:**\n" + "\n".join(
+                f"- {label}" for label in source_labels
+            )
 
     fallback_triggers = [
         "don't know based on the given context",

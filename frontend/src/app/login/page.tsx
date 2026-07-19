@@ -32,6 +32,7 @@ export default function LoginPage() {
 
             const data = await res.json();
             localStorage.setItem('token', data.access_token);
+            localStorage.setItem('username', username);
 
             // Fetch user role
             const userRes = await fetch('http://localhost:8000/users/me', {
