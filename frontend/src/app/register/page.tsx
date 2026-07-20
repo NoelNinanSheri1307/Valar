@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bot, Loader2, UserPlus } from 'lucide-react';
+import { apiUrl } from '../../lib/api';
 
 export default function RegisterPage() {
     const [username, setUsername] = useState('');
@@ -17,7 +18,7 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://localhost:8000/register', {
+            const res = await fetch(apiUrl('/register'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

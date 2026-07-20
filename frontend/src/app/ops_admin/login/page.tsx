@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bot, Loader2, ShieldCheck } from 'lucide-react';
+import { apiUrl } from '../../../lib/api';
 
 export default function AdminLoginPage() {
     const [username, setUsername] = useState('');
@@ -21,7 +22,7 @@ export default function AdminLoginPage() {
         formData.append('password', password);
 
         try {
-            const res = await fetch('http://localhost:8000/token', {
+            const res = await fetch(apiUrl('/token'), {
                 method: 'POST',
                 body: formData,
             });
@@ -33,7 +34,7 @@ export default function AdminLoginPage() {
             const data = await res.json();
 
             // Fetch user role
-            const userRes = await fetch('http://localhost:8000/users/me', {
+            const userRes = await fetch(apiUrl('/users/me'), {
                 headers: {
                     'Authorization': `Bearer ${data.access_token}`
                 }

@@ -1,5 +1,11 @@
 import os
+import secrets
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# auth is imported before rag_pipeline, so it cannot rely on that module having
+# loaded the .env already.
+load_dotenv()
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -9,9 +15,23 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, User, get_db
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey") # In prod, get this from .env
+# A shipped default secret means anyone can forge a manager token, so refuse to
+# start with one. Set SECRET_KEY in .env; ALLOW_EPHEMERAL_SECRET=1 generates a
+# throwaway key for local dev (every restart invalidates existing tokens).
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if os.getenv("ALLOW_EPHEMERAL_SECRET") == "1":
+        SECRET_KEY = secrets.token_urlsafe(48)
+        print("[auth] WARNING: using an ephemeral SECRET_KEY — tokens die on restart.")
+    else:
+        raise RuntimeError(
+            "SECRET_KEY is not set. Add it to your .env "
+            "(generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\"), "
+            "or set ALLOW_EPHEMERAL_SECRET=1 for local development."
+        )
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")

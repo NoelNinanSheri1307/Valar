@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Loader2, UserPlus } from 'lucide-react';
+import { apiUrl } from '../../../lib/api';
 
 export default function AdminRegisterPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [setupToken, setSetupToken] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
@@ -17,12 +19,12 @@ export default function AdminRegisterPage() {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://localhost:8000/register_admin', {
+            const res = await fetch(apiUrl('/register_admin'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password, role: 'manager' }),
+                body: JSON.stringify({ username, password, role: 'manager', setup_token: setupToken }),
             });
 
             if (!res.ok) {
@@ -85,13 +87,27 @@ export default function AdminRegisterPage() {
                             />
                         </div>
 
-                        {/* Note: the user role is hardcoded on the backend to "manager" for this endpoint, we no longer need the role selector here. */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2 ml-1">Admin Setup Token</label>
+                            <input
+                                type="password"
+                                value={setupToken}
+                                onChange={(e) => setSetupToken(e.target.value)}
+                                className="w-full p-4 bg-[#121212] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all shadow-inner text-[15px] tracking-wide"
+                                placeholder="ADMIN_SETUP_TOKEN from the backend .env"
+                                required
+                            />
+                            <p className="text-xs text-gray-600 mt-2 ml-1 leading-relaxed">
+                                This page only works for the very first manager account. Once one exists,
+                                further accounts must be created by a signed-in manager.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="pt-2">
                         <button
                             type="submit"
-                            disabled={isLoading || !username || !password}
+                            disabled={isLoading || !username || !password || !setupToken}
                             className="w-full py-4 px-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:scale-100 disabled:shadow-none"
                         >
                             {isLoading ? <Loader2 size={18} className="animate-spin" /> : (

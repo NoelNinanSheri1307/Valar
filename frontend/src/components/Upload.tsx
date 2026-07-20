@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { apiJson } from "../lib/api";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -18,6 +19,8 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
     const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [isDragging, setIsDragging] = useState(false);
+    const [progressNote, setProgressNote] = useState('');
+    const [chunkCount, setChunkCount] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,23 +53,48 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
         if (!file) return;
 
         setStatus('uploading');
+        setProgressNote('Uploading file...');
+
         const formData = new FormData();
         formData.append('file', file);
 
-        const token = localStorage.getItem('token');
-
         try {
-            const res = await fetch('http://localhost:8000/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData,
-            });
+            // The backend now returns 202 immediately and indexes in the
+            // background, so we poll for completion instead of holding the
+            // request open until a large PDF finishes (or times out).
+            const { id } = await apiJson<{ id: number; filename: string; status: string }>(
+                '/upload',
+                { method: 'POST', body: formData }
+            );
 
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || 'Upload failed');
+            setProgressNote('Extracting text and building embeddings...');
+
+            const startedAt = Date.now();
+            const TIMEOUT_MS = 5 * 60 * 1000;
+
+            while (true) {
+                await new Promise(r => setTimeout(r, 1500));
+
+                if (Date.now() - startedAt > TIMEOUT_MS) {
+                    throw new Error('Indexing is taking longer than expected. Check the document list for its status.');
+                }
+
+                const s = await apiJson<{ status: string; chunk_count: number; detail?: string }>(
+                    `/files/${id}/status`
+                );
+
+                if (s.status === 'indexed') {
+                    setChunkCount(s.chunk_count);
+                    break;
+                }
+                if (s.status === 'error') {
+                    throw new Error(s.detail || 'Indexing failed.');
+                }
+                setProgressNote(
+                    s.status === 'processing'
+                        ? 'Extracting text and building embeddings...'
+                        : 'Queued for indexing...'
+                );
             }
 
             setStatus('success');
@@ -74,12 +102,13 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
             setTimeout(() => {
                 setFile(null);
                 setStatus('idle');
-            }, 3000);
+                setChunkCount(null);
+            }, 4000);
         } catch (err: unknown) {
             setStatus('error');
             setErrorMessage(err instanceof Error ? err.message : 'Failed to upload and index document.');
+            if (onUploadSuccess) onUploadSuccess(); // refresh list so an errored doc shows up
         }
-
     };
 
     return (
@@ -147,8 +176,8 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                         <Loader2 className="animate-spin text-blue-400" size={20} />
                     </div>
                     <div>
-                        <p className="text-blue-100 font-medium text-sm">Uploading and Vectorizing...</p>
-                        <p className="text-blue-300/70 text-xs">This might take a few moments depending on file size.</p>
+                        <p className="text-blue-100 font-medium text-sm">{progressNote || 'Uploading and Vectorizing...'}</p>
+                        <p className="text-blue-300/70 text-xs">Indexing runs in the background — this page stays responsive.</p>
                     </div>
                 </div>
             )}
@@ -160,7 +189,11 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                     </div>
                     <div>
                         <p className="text-green-100 font-medium text-sm">Successfully Indexed!</p>
-                        <p className="text-green-300/70 text-xs">The document is now active in the AI Support Assistant's memory.</p>
+                        <p className="text-green-300/70 text-xs">
+                            {chunkCount !== null
+                                ? `${chunkCount} searchable chunks are now live in the knowledge base.`
+                                : "The document is now active in the AI Support Assistant's memory."}
+                        </p>
                     </div>
                 </div>
             )}

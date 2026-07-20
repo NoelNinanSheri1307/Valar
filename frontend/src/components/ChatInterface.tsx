@@ -1,21 +1,26 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Menu, Plus, Bot, Loader2, MessageSquare, X, Globe, Building, Calendar, HelpCircle, BookOpen, Briefcase, Download, Ticket, ThumbsUp, ThumbsDown, RotateCcw, Copy, Trash2, CheckCircle2 } from "lucide-react";
+import { Send, Menu, Plus, Bot, Loader2, MessageSquare, X, Globe, Building, HelpCircle, BookOpen, Briefcase, Download, Ticket, ThumbsUp, ThumbsDown, RotateCcw, Copy, Trash2, CheckCircle2, FileText, AlertTriangle, Sparkles } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useRouter } from "next/navigation";
 import { exportAsMarkdown, exportAsPlainText, exportAsPDF } from "../lib/chatExport";
+import { apiFetch, apiJson, type Citation, type SourceType, type AskResponse } from "../lib/api";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
 type Message = {
+    id?: number;
     role: "user" | "assistant";
     content: string;
+    citations?: Citation[];
+    confidence?: number | null;
+    source_type?: SourceType | null;
 };
 
 type ChatSession = {
@@ -43,6 +48,24 @@ interface ChatInterfaceProps {
     handleLogout?: () => void;
 }
 
+/** Retrieval confidence, banded so a weak match never reads as authoritative. */
+function ConfidenceBadge({ value }: { value: number }) {
+    const pct = Math.round(value * 100);
+    const band =
+        value >= 0.7 ? { label: "High confidence", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25" } :
+        value >= 0.4 ? { label: "Moderate confidence", cls: "bg-amber-500/10 text-amber-400 border-amber-500/25" } :
+                       { label: "Low confidence", cls: "bg-red-500/10 text-red-400 border-red-500/25" };
+
+    return (
+        <span
+            title={`Retrieval confidence ${pct}% — how strongly the cited documents matched your question.`}
+            className={cn("text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md border shrink-0", band.cls)}
+        >
+            {band.label} · {pct}%
+        </span>
+    );
+}
+
 export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps = {}) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -67,13 +90,17 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
     const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
 
+    // message_id -> "helpful" | "not_helpful", so the UI reflects what was saved
+    const [feedbackGiven, setFeedbackGiven] = useState<Record<number, string>>({});
+    const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+    // message_id -> generated follow-up questions (cached server-side)
+    const [followUps, setFollowUps] = useState<Record<number, string[]>>({});
+    const [followUpsLoading, setFollowUpsLoading] = useState<number | null>(null);
+
     const confirmDeleteSession = async (sessionId: number) => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8000/sessions/${sessionId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await apiFetch(`/sessions/${sessionId}`, { method: 'DELETE' });
             if (res.ok) {
                 if (currentSessionId === sessionId) {
                     setMessages([]);
@@ -86,6 +113,26 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         } catch (err) {
             console.error(err);
             alert("Failed to delete this conversation. Please try again.");
+        }
+    };
+
+    const submitFeedback = async (messageId: number | undefined, rating: "helpful" | "not_helpful") => {
+        if (!messageId) return;
+        const previous = feedbackGiven[messageId];
+        setFeedbackGiven(prev => ({ ...prev, [messageId]: rating }));  // optimistic
+        try {
+            await apiJson(`/messages/${messageId}/feedback`, {
+                method: 'POST',
+                body: JSON.stringify({ rating }),
+            });
+        } catch (err) {
+            console.error("Failed to save feedback", err);
+            setFeedbackGiven(prev => {
+                const next = { ...prev };
+                if (previous) next[messageId] = previous;
+                else delete next[messageId];
+                return next;
+            });
         }
     };
 
@@ -124,26 +171,34 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         scrollToBottom();
     }, [messages]);
 
+    // Fetch follow-ups for the newest answer once it has rendered. Kept out of
+    // the /ask response so the answer is never held back waiting on them.
+    // `attempted` guarantees one request per message even if it fails —
+    // without it, a failing endpoint would be retried on every render.
+    const followUpsAttempted = useRef<Set<number>>(new Set());
+
+    useEffect(() => {
+        const last = messages[messages.length - 1];
+        if (!last || last.role !== "assistant" || !last.id) return;
+
+        const messageId = last.id;
+        if (followUpsAttempted.current.has(messageId)) return;
+        followUpsAttempted.current.add(messageId);
+
+        setFollowUpsLoading(messageId);
+        apiJson<{ follow_ups: string[] }>(`/messages/${messageId}/followups`)
+            .then(({ follow_ups }) => setFollowUps(prev => ({ ...prev, [messageId]: follow_ups })))
+            .catch(err => {
+                console.error("Failed to load follow-ups", err);
+                setFollowUps(prev => ({ ...prev, [messageId]: [] }));
+            })
+            .finally(() => setFollowUpsLoading(curr => (curr === messageId ? null : curr)));
+    }, [messages]);
+
     const fetchSessions = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
-            const res = await fetch('http://localhost:8000/sessions', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('role');
-                router.push('/login');
-                return;
-            }
-            if (res.ok) {
-                const data = await res.json();
-                setSessions(data);
-            }
+            const data = await apiJson<ChatSession[]>('/sessions');
+            setSessions(data);
         } catch (error) {
             console.error("Failed to fetch sessions", error);
         }
@@ -153,20 +208,15 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         setCurrentSessionId(sessionId);
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8000/sessions/${sessionId}/messages`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('role');
-                router.push('/login');
-                return;
-            }
-            if (res.ok) {
-                const data = await res.json();
-                setMessages(data.map((m: any) => ({ role: m.role, content: m.content })));
-            }
+            const data = await apiJson<Message[]>(`/sessions/${sessionId}/messages`);
+            setMessages(data.map((m) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                citations: m.citations ?? [],
+                confidence: m.confidence,
+                source_type: m.source_type,
+            })));
         } catch (error) {
             console.error("Failed to load session", error);
         } finally {
@@ -192,51 +242,29 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
             let activeSessionId = currentSessionId;
 
             if (!activeSessionId) {
-                const createRes = await fetch('http://localhost:8000/sessions', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (createRes.status === 401) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('role');
-                    router.push('/login');
-                    return;
-                }
-                if (createRes.ok) {
-                    const newSession = await createRes.json();
-                    activeSessionId = newSession.id;
-                    setCurrentSessionId(activeSessionId);
-                } else {
-                    throw new Error("Failed to create session");
-                }
+                const newSession = await apiJson<ChatSession>('/sessions', { method: 'POST' });
+                activeSessionId = newSession.id;
+                setCurrentSessionId(activeSessionId);
             }
 
-            const askRes = await fetch(`http://localhost:8000/sessions/${activeSessionId}/ask`, {
+            const data = await apiJson<AskResponse>(`/sessions/${activeSessionId}/ask`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ question: userMessage, session_id: activeSessionId })
+                body: JSON.stringify({ question: userMessage }),
             });
 
-            if (askRes.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('role');
-                router.push('/login');
-                return;
-            }
-
-            if (!askRes.ok) throw new Error("Failed to get answer");
-
-            const data = await askRes.json();
             setMessages((prev) => [
                 ...prev,
-                { role: "assistant", content: data.answer },
+                {
+                    id: data.message_id,
+                    role: "assistant",
+                    content: data.answer,
+                    citations: data.citations ?? [],
+                    confidence: data.confidence,
+                    source_type: data.source_type,
+                },
             ]);
 
             fetchSessions();
@@ -244,30 +272,46 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
             console.error(error);
             setMessages((prev) => [
                 ...prev,
-                { role: "assistant", content: "Sorry, I had trouble connecting to the server. Please check your backend connection." },
+                {
+                    role: "assistant",
+                    content: error instanceof Error && error.message !== "Unauthorized"
+                        ? `Sorry, something went wrong: ${error.message}`
+                        : "Sorry, I had trouble connecting to the server. Please check your backend connection.",
+                    source_type: "none",
+                },
             ]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const renderMessageContent = (content: string) => {
-        const sourcesMatch = content.match(/\*\*Sources:\*\*\s*\n([\s\S]+)/);
-        let mainContent = content;
-        const sources: { title: string, uri: string }[] = [];
-
-        if (sourcesMatch) {
-            mainContent = content.replace(sourcesMatch[0], '').trim();
-            const sourcesText = sourcesMatch[1];
-            const sourceRegex = /-\s+\[(.*?)\]\((.*?)\)/g;
-            let match;
-            while ((match = sourceRegex.exec(sourcesText)) !== null) {
-                sources.push({ title: match[1], uri: match[2] });
-            }
-        }
+    const renderMessageContent = (msg: Message) => {
+        const mainContent = msg.content;
+        const citations = msg.citations ?? [];
+        const sourceType = msg.source_type ?? null;
+        const confidence = msg.confidence;
 
         return (
             <div className="flex flex-col w-full min-w-0">
+                {/* Provenance banner — a web answer must never look like plant documentation */}
+                {sourceType === "web" && (
+                    <div className="flex items-start gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200/90">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
+                        <p className="text-xs leading-relaxed">
+                            <span className="font-semibold">Not from your document library.</span>{" "}
+                            Nothing in the indexed corpus matched, so this was answered from public
+                            web sources. Verify before acting on it.
+                        </p>
+                    </div>
+                )}
+
+                {sourceType === "faq" && (
+                    <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-200/90">
+                        <Sparkles size={13} className="shrink-0 text-blue-400" />
+                        <p className="text-xs font-medium">Curated answer from your FAQ library.</p>
+                    </div>
+                )}
+
                 <div className="flex-1 text-[15px] leading-relaxed break-words mt-1.5 md:mt-2 text-gray-200 space-y-4 w-full">
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
@@ -305,32 +349,78 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     </ReactMarkdown>
                 </div>
 
-                {sources.length > 0 && (
+                {citations.length > 0 && (
                     <div className="w-full mt-5 border-t border-white/10 pt-4">
-                        <div className="text-xs font-semibold text-gray-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                            <Globe size={13} className="text-gray-400" />
-                            Sources
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="text-xs font-semibold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
+                                {sourceType === "web"
+                                    ? <Globe size={13} className="text-amber-400" />
+                                    : <FileText size={13} className="text-emerald-400" />}
+                                {sourceType === "web" ? "Web sources" : "Sources from your documents"}
+                            </div>
+                            {typeof confidence === "number" && sourceType === "documents" && (
+                                <ConfidenceBadge value={confidence} />
+                            )}
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            {sources.map((src, i) => (
-                                <a
-                                    key={i}
-                                    href={src.uri}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="group flex flex-col justify-center bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-white/10 hover:border-white/20 rounded-xl px-2.5 py-2.5 transition-all text-left w-full shadow-sm overflow-hidden"
-                                >
-                                    <div className="flex items-center gap-2 mb-1 text-xs">
-                                        <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] text-gray-300 font-medium shrink-0 group-hover:bg-white/20 transition-colors">
-                                            {i + 1}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {citations.map((c) => {
+                                const label = c.page !== null && c.page !== undefined
+                                    ? `${c.document} · p.${c.page + 1}`
+                                    : c.document;
+
+                                const inner = (
+                                    <>
+                                        <div className="flex items-center gap-2 text-xs min-w-0">
+                                            <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] text-gray-300 font-semibold shrink-0 group-hover:bg-white/20 transition-colors">
+                                                {c.index}
+                                            </div>
+                                            <span className="text-[13px] font-medium text-gray-200 truncate flex-1">
+                                                {label}
+                                            </span>
+                                            {c.score > 0 && (
+                                                <span className="text-[10px] text-gray-500 tabular-nums shrink-0">
+                                                    {Math.round(c.score * 100)}%
+                                                </span>
+                                            )}
                                         </div>
-                                        <span className="text-sm font-medium text-gray-200 truncate w-full flex-1">
-                                            {src.title}
-                                        </span>
+                                        {c.snippet && (
+                                            <p className="text-[11px] text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
+                                                {c.snippet}
+                                            </p>
+                                        )}
+                                    </>
+                                );
+
+                                return c.url ? (
+                                    <a
+                                        key={c.index}
+                                        href={c.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="group flex flex-col bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-white/10 hover:border-white/20 rounded-xl px-3 py-2.5 transition-all text-left w-full shadow-sm overflow-hidden"
+                                    >
+                                        {inner}
+                                    </a>
+                                ) : (
+                                    <div
+                                        key={c.index}
+                                        title={c.snippet}
+                                        className="group flex flex-col bg-[#1c1c1c] border border-white/10 rounded-xl px-3 py-2.5 text-left w-full shadow-sm overflow-hidden"
+                                    >
+                                        {inner}
                                     </div>
-                                </a>
-                            ))}
+                                );
+                            })}
                         </div>
+                    </div>
+                )}
+
+                {/* Grounded answer with no usable sources — say so rather than implying authority */}
+                {citations.length === 0 && sourceType === "none" && (
+                    <div className="mt-4 text-[11px] text-gray-500 flex items-center gap-1.5">
+                        <AlertTriangle size={12} className="text-gray-600" />
+                        No supporting document was found for this answer.
                     </div>
                 )}
             </div>
@@ -545,23 +635,25 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                 <Bot size={18} />
                                             </div>
                                             <div className="flex-1 flex flex-col min-w-0">
-                                                {renderMessageContent(msg.content)}
+                                                {renderMessageContent(msg)}
 
-                                                {/* Assistant Message Actions & Feedback (Placeholder UI) */}
+                                                {/* Assistant Message Actions & Feedback */}
                                                 <div className="flex flex-wrap items-center justify-between mt-3 text-gray-500 border-t border-white/5 pt-2 gap-2">
                                                     <div className="flex items-center gap-4">
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
                                                                 navigator.clipboard.writeText(msg.content);
-                                                                alert("Response copied to clipboard!");
+                                                                setCopiedIdx(idx);
+                                                                setTimeout(() => setCopiedIdx(null), 2000);
                                                             }}
                                                             className="text-xs hover:text-gray-300 transition-colors flex items-center gap-1"
                                                             title="Copy Answer"
                                                         >
-                                                            <Copy size={12} />
-                                                            Copy
+                                                            {copiedIdx === idx
+                                                                ? <><CheckCircle2 size={12} className="text-green-400" /> Copied</>
+                                                                : <><Copy size={12} /> Copy</>}
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
                                                                 handleSubmit(undefined, messages[idx - 1]?.content || "");
                                                             }}
@@ -572,44 +664,63 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                             Retry
                                                         </button>
                                                     </div>
-                                                    
-                                                    {/* Thumbs up/down feedback */}
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] uppercase tracking-wider text-gray-600 font-sans">Was this helpful?</span>
-                                                        <button 
-                                                            onClick={() => alert("Feedback saved: Helpful! (Stored in Local Analytics Dashboard)")}
-                                                            className="hover:text-green-400 transition-colors p-1 hover:bg-white/5 rounded"
-                                                            title="Helpful"
-                                                        >
-                                                            <ThumbsUp size={13} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => alert("Feedback saved: Not Helpful! (Stored in Local Analytics Dashboard)")}
-                                                            className="hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
-                                                            title="Not Helpful"
-                                                        >
-                                                            <ThumbsDown size={13} />
-                                                        </button>
-                                                    </div>
+
+                                                    {/* Thumbs up/down feedback — persisted to the backend */}
+                                                    {msg.id && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] uppercase tracking-wider text-gray-600 font-sans">
+                                                                {feedbackGiven[msg.id] ? "Thanks for the feedback" : "Was this helpful?"}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => submitFeedback(msg.id, "helpful")}
+                                                                className={cn(
+                                                                    "transition-colors p-1 hover:bg-white/5 rounded",
+                                                                    feedbackGiven[msg.id] === "helpful" ? "text-green-400" : "hover:text-green-400"
+                                                                )}
+                                                                title="Helpful"
+                                                            >
+                                                                <ThumbsUp size={13} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => submitFeedback(msg.id, "not_helpful")}
+                                                                className={cn(
+                                                                    "transition-colors p-1 hover:bg-white/5 rounded",
+                                                                    feedbackGiven[msg.id] === "not_helpful" ? "text-red-400" : "hover:text-red-400"
+                                                                )}
+                                                                title="Not Helpful"
+                                                            >
+                                                                <ThumbsDown size={13} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {/* Smart Contextual Followups (Placeholder UI) */}
-                                                {idx === messages.length - 1 && (
-                                                    <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                        <span className="text-xs text-gray-500 self-center">Follow-ups:</span>
-                                                        <button 
-                                                            onClick={() => setInput("Can you show me the step-by-step troubleshooting guide for this?")}
-                                                            className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300 hover:bg-white/10 transition-all font-medium"
-                                                        >
-                                                            Get step-by-step troubleshooting guide
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setInput("What are the standard safety procedures when handling this error?")}
-                                                            className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300 hover:bg-white/10 transition-all font-medium"
-                                                        >
-                                                            Standard safety procedures
-                                                        </button>
-                                                        <button 
+                                                {/* Contextual follow-ups, generated from this answer's own sources */}
+                                                {idx === messages.length - 1 && !isLoading && (
+                                                    <div className="mt-4 flex flex-wrap gap-2 items-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                        {msg.id && followUpsLoading === msg.id && (
+                                                            <span className="text-xs text-gray-600 flex items-center gap-1.5">
+                                                                <Loader2 size={11} className="animate-spin" />
+                                                                Suggesting follow-ups...
+                                                            </span>
+                                                        )}
+
+                                                        {msg.id && (followUps[msg.id]?.length ?? 0) > 0 && (
+                                                            <>
+                                                                <span className="text-xs text-gray-500 self-center">Follow-ups:</span>
+                                                                {followUps[msg.id].map((q, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        onClick={() => handleSubmit(undefined, q)}
+                                                                        className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all font-medium"
+                                                                    >
+                                                                        {q}
+                                                                    </button>
+                                                                ))}
+                                                            </>
+                                                        )}
+
+                                                        <button
                                                             onClick={() => setIsTicketModalOpen(true)}
                                                             className="text-xs bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-full px-3 py-1 hover:bg-purple-500/20 transition-all flex items-center gap-1 font-medium"
                                                         >

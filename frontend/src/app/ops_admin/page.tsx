@@ -3,16 +3,38 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UploadComponent from "../../components/Upload";
+import { apiJson } from "../../lib/api";
 import {
     ArrowLeft, LayoutDashboard, Database, Settings, FileText,
     Clock, Ticket, BarChart2, HelpCircle, Activity, ChevronRight,
-    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2, X
+    AlertCircle, Trash2, CheckCircle2, RotateCcw, Loader2, X,
+    ThumbsUp, ThumbsDown
 } from "lucide-react";
 
 type UploadedFile = {
+    id: number;
     filename: string;
     size: number;
+    status: "queued" | "processing" | "indexed" | "error";
+    chunk_count: number;
+    error_detail: string | null;
     uploaded_at: string;
+};
+
+type FeedbackAnalytics = {
+    helpful: number;
+    not_helpful: number;
+    total: number;
+    satisfaction_rate: string;
+    avg_confidence: number | null;
+    recent_negative: {
+        message_id: number;
+        answer_preview: string;
+        source_type: string | null;
+        confidence: number | null;
+        comment: string | null;
+        created_at: string;
+    }[];
 };
 
 type SupportTicket = {
@@ -56,6 +78,9 @@ export default function AdminPage() {
         gaps: [],
     });
 
+    // ---- Answer-quality feedback (now persisted server-side) ----
+    const [feedbackData, setFeedbackData] = useState<FeedbackAnalytics | null>(null);
+
     // ---- Re-index state: filename -> "idle" | "loading" | "done" | "error:<msg>" ----
     const [reindexState, setReindexState] = useState<Record<string, string>>({});
 
@@ -75,14 +100,8 @@ export default function AdminPage() {
 
     const fetchFiles = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/files', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setFiles(data.sort((a: any, b: any) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()));
-            }
+            const data = await apiJson<UploadedFile[]>('/files');
+            setFiles([...data].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()));
         } catch (error) {
             console.error("Failed to fetch files", error);
         }
@@ -90,50 +109,39 @@ export default function AdminPage() {
 
     const fetchFaqs = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/faq', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) setFaqs(await res.json());
+            setFaqs(await apiJson<FaqRule[]>('/faq'));
         } catch (e) { console.error("Failed to fetch FAQs", e); }
     };
 
     const fetchAnalytics = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/analytics/gaps', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) setAnalyticsData(await res.json());
+            setAnalyticsData(await apiJson('/analytics/gaps'));
         } catch (e) { console.error("Failed to fetch analytics", e); }
+    };
+
+    const fetchFeedback = async () => {
+        try {
+            setFeedbackData(await apiJson<FeedbackAnalytics>('/analytics/feedback'));
+        } catch (e) { console.error("Failed to fetch feedback analytics", e); }
     };
 
     const handleAddFaq = async () => {
         if (!newKeyword.trim() || !newResponse.trim()) return;
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/faq', {
+            await apiJson('/faq', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ keyword: newKeyword.trim(), response: newResponse.trim(), is_active: newIsActive }),
             });
-            if (res.ok) {
-                setNewKeyword(""); setNewResponse(""); setNewIsActive(true);
-                fetchFaqs();
-            } else {
-                const err = await res.json();
-                alert(err.detail || "Failed to add FAQ rule");
-            }
-        } catch (e) { console.error(e); }
+            setNewKeyword(""); setNewResponse(""); setNewIsActive(true);
+            fetchFaqs();
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "Failed to add FAQ rule");
+        }
     };
 
     const handleDeleteFaq = async (id: number) => {
         try {
-            const token = localStorage.getItem('token');
-            await fetch(`http://localhost:8000/faq/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await apiJson(`/faq/${id}`, { method: 'DELETE' });
             fetchFaqs();
         } catch (e) { console.error(e); }
     };
@@ -143,25 +151,19 @@ export default function AdminPage() {
         setReindexState(prev => ({ ...prev, [filename]: "loading" }));
         setToast({ message: "Re-indexing document... Please wait.", type: "info" });
         try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:8000/reindex/${encodeURIComponent(filename)}`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Re-index failed"); }
+            await apiJson(`/reindex/${encodeURIComponent(filename)}`, { method: "POST" });
             let attempts = 0;
             const poll = setInterval(async () => {
                 attempts++;
                 try {
-                    const statusRes = await fetch(
-                        `http://localhost:8000/reindex/${encodeURIComponent(filename)}/status`,
-                        { headers: { Authorization: `Bearer ${token}` } }
+                    const statusData = await apiJson<{ status: string; detail?: string }>(
+                        `/reindex/${encodeURIComponent(filename)}/status`
                     );
-                    const statusData = await statusRes.json();
                     if (statusData.status === "done") {
                         clearInterval(poll);
                         setReindexState(prev => ({ ...prev, [filename]: "done" }));
                         setToast({ message: "Document re-indexed successfully.", type: "success" });
+                        fetchFiles();
                         setTimeout(() => setReindexState(prev => ({ ...prev, [filename]: "idle" })), 4000);
                     } else if (statusData.status === "error") {
                         clearInterval(poll);
@@ -188,15 +190,7 @@ export default function AdminPage() {
         if (!confirm(`Delete "${filename}" from the knowledge base? This cannot be undone.`)) return;
         setDeleteState(prev => ({ ...prev, [filename]: "loading" }));
         try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:8000/files/${encodeURIComponent(filename)}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Delete failed");
-            }
+            await apiJson(`/files/${encodeURIComponent(filename)}`, { method: "DELETE" });
             setDeleteState(prev => ({ ...prev, [filename]: "done" }));
             fetchFiles(); // refresh list
             setTimeout(() => setDeleteState(prev => ({ ...prev, [filename]: "idle" })), 3000);
@@ -268,6 +262,7 @@ export default function AdminPage() {
             loadTickets();
             fetchFaqs();
             fetchAnalytics();
+            fetchFeedback();
         }
     }, [router]);
 
@@ -368,7 +363,30 @@ export default function AdminPage() {
                                                         </div>
                                                         <div className="overflow-hidden">
                                                             <p className="text-sm font-medium text-white truncate">{f.filename}</p>
-                                                            <p className="text-xs text-gray-500">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                <span>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                                                                {f.status === "indexed" && (
+                                                                    <>
+                                                                        <span className="text-gray-700">·</span>
+                                                                        <span>{f.chunk_count} chunks</span>
+                                                                    </>
+                                                                )}
+                                                                {(f.status === "queued" || f.status === "processing") && (
+                                                                    <span className="flex items-center gap-1 text-yellow-400 font-medium">
+                                                                        <Loader2 size={10} className="animate-spin" />
+                                                                        {f.status === "queued" ? "Queued" : "Indexing"}
+                                                                    </span>
+                                                                )}
+                                                                {f.status === "error" && (
+                                                                    <span
+                                                                        className="flex items-center gap-1 text-red-400 font-medium truncate max-w-[220px]"
+                                                                        title={f.error_detail || "Indexing failed"}
+                                                                    >
+                                                                        <AlertCircle size={10} />
+                                                                        Indexing failed
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs text-gray-400 flex-shrink-0">
@@ -623,10 +641,52 @@ export default function AdminPage() {
                                         <span className="text-[10px] text-gray-500 mt-1">Total recorded gaps</span>
                                     </div>
                                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col">
-                                        <span className="text-gray-400 text-xs font-medium">Tickets Escalated</span>
-                                        <span className="text-2xl font-bold text-purple-400 mt-1">{tickets.length}</span>
-                                        <span className="text-[10px] text-gray-500 mt-1">Unresolved issues</span>
+                                        <span className="text-gray-400 text-xs font-medium">Answer Satisfaction</span>
+                                        <span className="text-2xl font-bold text-emerald-400 mt-1">
+                                            {feedbackData?.satisfaction_rate ?? "–"}
+                                        </span>
+                                        <span className="text-[10px] text-gray-500 mt-1">
+                                            {feedbackData ? `${feedbackData.total} rating${feedbackData.total === 1 ? "" : "s"} from agents` : "No ratings yet"}
+                                        </span>
                                     </div>
+                                </div>
+
+                                {/* Answer quality — sourced from real thumbs up/down, not localStorage */}
+                                <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-xs font-semibold text-gray-400">Answer Quality Feedback</span>
+                                        {feedbackData?.avg_confidence !== null && feedbackData?.avg_confidence !== undefined && (
+                                            <span className="text-[10px] text-gray-500">
+                                                Mean retrieval confidence: {Math.round(feedbackData.avg_confidence * 100)}%
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-6 mb-3">
+                                        <span className="flex items-center gap-1.5 text-sm text-emerald-400 font-semibold">
+                                            <ThumbsUp size={14} /> {feedbackData?.helpful ?? 0}
+                                        </span>
+                                        <span className="flex items-center gap-1.5 text-sm text-red-400 font-semibold">
+                                            <ThumbsDown size={14} /> {feedbackData?.not_helpful ?? 0}
+                                        </span>
+                                    </div>
+
+                                    {feedbackData && feedbackData.recent_negative.length > 0 && (
+                                        <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1 border-t border-white/5 pt-3">
+                                            <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Recently flagged answers</div>
+                                            {feedbackData.recent_negative.map((n) => (
+                                                <div key={n.message_id} className="p-2.5 bg-red-500/5 border border-red-500/10 rounded-lg text-xs">
+                                                    <p className="text-gray-300 line-clamp-2 leading-relaxed">{n.answer_preview}</p>
+                                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
+                                                        <span>{n.source_type ?? "unknown source"}</span>
+                                                        {n.confidence !== null && <span>· {Math.round(n.confidence * 100)}% confidence</span>}
+                                                        {n.created_at && <span>· {new Date(n.created_at).toLocaleString()}</span>}
+                                                    </div>
+                                                    {n.comment && <p className="text-[11px] text-amber-300/80 mt-1 italic">"{n.comment}"</p>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-4">
