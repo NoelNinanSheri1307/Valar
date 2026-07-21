@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ShieldCheck, Loader2, UserPlus } from 'lucide-react';
 import { apiUrl } from '../../../lib/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function AdminRegisterPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');

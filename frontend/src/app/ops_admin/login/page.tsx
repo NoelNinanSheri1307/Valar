@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Bot, Loader2, ShieldCheck } from 'lucide-react';
 import { apiUrl } from '../../../lib/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function AdminLoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -46,6 +48,7 @@ export default function AdminLoginPage() {
             }
 
             localStorage.setItem('token', data.access_token);
+            localStorage.setItem('username', username);
             localStorage.setItem('role', userData.role);
 
             router.push('/ops_admin');

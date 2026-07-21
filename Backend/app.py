@@ -324,6 +324,7 @@ def login_for_access_token(
         data={"sub": user.username, "role": user.role},
         expires_delta=access_token_expires
     )
+    log_activity(user.username, "Login")
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -339,7 +340,7 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 # File Upload (Admin Only)
 # -------------------------
 
-UPLOAD_DIR = "uploaded_files"
+UPLOAD_DIR = os.getenv("UPLOAD_DIRECTORY", "uploaded_files")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
@@ -717,8 +718,19 @@ def ask_rag_deprecated(
 # -------------------------
 
 @app.get("/sessions", response_model=list[ChatSessionResponse])
-def get_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    sessions = db.query(ChatSession).filter(ChatSession.user_id == current_user.id).order_by(ChatSession.created_at.desc()).all()
+def get_sessions(
+    search: str = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(ChatSession).filter(ChatSession.user_id == current_user.id)
+    if search:
+        search_term = f"%{search}%"
+        query = query.outerjoin(ChatMessage).filter(
+            (ChatSession.title.ilike(search_term)) |
+            (ChatMessage.content.ilike(search_term))
+        ).distinct()
+    sessions = query.order_by(ChatSession.created_at.desc()).all()
     return sessions
 
 
@@ -1057,6 +1069,7 @@ def create_faq_rule(
     db.add(db_rule)
     db.commit()
     db.refresh(db_rule)
+    log_activity(current_user.username, "FAQ Added", db_rule.keyword)
     return db_rule
 
 
@@ -1069,8 +1082,10 @@ def delete_faq_rule(
     db_rule = db.query(FAQRule).filter(FAQRule.id == id).first()
     if not db_rule:
         raise HTTPException(status_code=404, detail="FAQ rule not found")
+    keyword = db_rule.keyword
     db.delete(db_rule)
     db.commit()
+    log_activity(current_user.username, "FAQ Deleted", keyword)
     return
 
 

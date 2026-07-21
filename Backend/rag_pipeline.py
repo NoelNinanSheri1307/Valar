@@ -39,7 +39,7 @@ MAX_HISTORY_TURNS = 6          # how many prior messages feed the rewriter
 SNIPPET_CHARS = 320            # citation preview length
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-CHROMA_PERSIST_DIR = "./chroma_db"
+CHROMA_PERSIST_DIR = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 
 if not OPENROUTER_API_KEY:
     raise ValueError("OPENROUTER_API_KEY not found in .env file")
@@ -106,6 +106,13 @@ def ingest_document(file_path: str, doc_id: int | None = None) -> int:
 
     Returns the number of chunks indexed.
     """
+    from settings_manager import load_settings
+    settings = load_settings()
+    local_text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=settings.get("chunk_size", 1000),
+        chunk_overlap=settings.get("chunk_overlap", 200),
+    )
+
     ext = os.path.splitext(file_path)[1].lower()
 
     if ext == ".pdf":
