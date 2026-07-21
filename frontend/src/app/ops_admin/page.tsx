@@ -521,6 +521,17 @@ export default function AdminPage() {
         }
     }, [router]);
 
+    // Poll for files that are actively being indexed in the background
+    useEffect(() => {
+        const hasProcessing = files.some(f => f.status === 'queued' || f.status === 'processing');
+        if (hasProcessing) {
+            const interval = setInterval(() => {
+                fetchFiles();
+            }, 2000);
+            return () => clearInterval(interval);
+        }
+    }, [files]);
+
     if (loading) return <div className="min-h-[100dvh] bg-bg-primary text-text-primary flex items-center justify-center">Loading Admin...</div>;
 
     return (
