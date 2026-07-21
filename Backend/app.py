@@ -324,7 +324,7 @@ def login_for_access_token(
         data={"sub": user.username, "role": user.role},
         expires_delta=access_token_expires
     )
-    log_activity(user.username, "Login")
+    write_audit(db, user, "login")
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -1069,7 +1069,7 @@ def create_faq_rule(
     db.add(db_rule)
     db.commit()
     db.refresh(db_rule)
-    log_activity(current_user.username, "FAQ Added", db_rule.keyword)
+    write_audit(db, current_user, "add_faq", detail=db_rule.keyword)
     return db_rule
 
 
@@ -1085,7 +1085,7 @@ def delete_faq_rule(
     keyword = db_rule.keyword
     db.delete(db_rule)
     db.commit()
-    log_activity(current_user.username, "FAQ Deleted", keyword)
+    write_audit(db, current_user, "delete_faq", detail=keyword)
     return
 
 
