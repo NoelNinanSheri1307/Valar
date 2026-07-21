@@ -481,16 +481,6 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
         const sourceType = msg.source_type ?? null;
         const confidence = msg.confidence;
 
-        if (relatedMatch) {
-            mainContent = mainContent.replace(relatedMatch[0], '').trim();
-            const relatedText = relatedMatch[1];
-            relatedText
-                .split('\n')
-                .map((line) => line.replace(/^[-*]\s*/, '').trim())
-                .filter(Boolean)
-                .forEach((item) => relatedDocuments.push(item));
-        }
-
         return (
             <div className="flex flex-col w-full min-w-0">
                 {/* Provenance banner — a web answer must never look like plant documentation */}
