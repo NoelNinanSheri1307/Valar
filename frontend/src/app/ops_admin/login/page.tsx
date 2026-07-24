@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bot, Loader2, ShieldCheck } from 'lucide-react';
 import { apiUrl } from '../../../lib/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
 
 export default function AdminLoginPage() {
     const [username, setUsername] = useState('');

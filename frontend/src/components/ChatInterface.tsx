@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { exportAsMarkdown, exportAsPlainText, exportAsPDF } from "../lib/chatExport";
 import { apiFetch, apiJson, type Citation, type SourceType, type AskResponse } from "../lib/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));

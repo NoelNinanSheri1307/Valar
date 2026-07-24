@@ -47,15 +47,15 @@ app = FastAPI(
     version="2.1.0",
 )
 
-# CORS — wildcard origins with credentials is both insecure and rejected by
-# browsers, so read an explicit allowlist from the environment.
+# CORS configuration allowing local dev, Vercel deployments, and custom env origins
 ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip()
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,https://valar-mu.vercel.app").split(",") if o.strip()
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.railway\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

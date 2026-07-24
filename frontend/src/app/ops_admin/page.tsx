@@ -47,7 +47,7 @@ type SupportTicket = {
     user: string;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
 
 function cn(...classes: string[]) {
     return classes.filter(Boolean).join(" ");

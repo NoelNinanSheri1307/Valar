@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
 
 export async function askRag(question: string) {
   const token = localStorage.getItem('token');
