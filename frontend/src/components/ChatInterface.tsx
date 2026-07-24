@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { exportAsMarkdown, exportAsPlainText, exportAsPDF } from "../lib/chatExport";
 import { apiFetch, apiJson, type Citation, type SourceType, type AskResponse } from "../lib/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production-0e9a.up.railway.app';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -249,8 +249,8 @@ function ConfidenceBadge({ value }: { value: number }) {
     const pct = Math.round(value * 100);
     const band =
         value >= 0.7 ? { label: "High confidence", dot: "bg-good", cls: "bg-good-soft text-good" } :
-        value >= 0.4 ? { label: "Moderate confidence", dot: "bg-amber-500", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" } :
-                       { label: "Low confidence", dot: "bg-red-500", cls: "bg-red-500/10 text-red-600 dark:text-red-400" };
+            value >= 0.4 ? { label: "Moderate confidence", dot: "bg-amber-500", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" } :
+                { label: "Low confidence", dot: "bg-red-500", cls: "bg-red-500/10 text-red-600 dark:text-red-400" };
 
     return (
         <span
@@ -1035,8 +1035,8 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     >
                                         <MessageSquare size={14} className={currentSessionId === session.id ? "text-accent-text" : "text-text-secondary"} />
                                         <span className="truncate flex-1">{session.title}</span>
-                                        
-                                        <button 
+
+                                        <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setSessionToDelete(session.id);
@@ -1087,7 +1087,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                         </button>
                         <span className="ml-3 font-semibold text-base text-text-primary flex items-center gap-2">
                             <Bot size={18} className="text-accent-text font-bold" />
-                             Valar — Document Support Chatbot
+                            Valar — Document Support Chatbot
                         </span>
                     </div>
 
@@ -1099,9 +1099,9 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                             title={theme === 'dark' ? "Switch to Light Theme" : "Switch to Dark Theme"}
                         >
                             {theme === 'dark' ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
                             )}
                         </button>
 
@@ -1122,24 +1122,24 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                     <Download size={14} />
                                     Export
                                 </button>
-                                
+
                                 {isExportMenuOpen && (
                                     <div className="absolute right-0 top-10 w-44 bg-card-background border border-border-default rounded-xl shadow-md py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                        <button 
+                                        <button
                                             onClick={() => { exportAsMarkdown(messages); setIsExportMenuOpen(false); }}
                                             className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-bg-tertiary hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer focus-visible:bg-bg-tertiary outline-none"
                                         >
                                             <Download size={11} className="text-text-secondary" />
                                             Markdown (.md)
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => { exportAsPDF(messages); setIsExportMenuOpen(false); }}
                                             className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-bg-tertiary hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer focus-visible:bg-bg-tertiary outline-none"
                                         >
                                             <Download size={11} className="text-text-secondary" />
                                             PDF Document (.pdf)
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => { exportAsPlainText(messages); setIsExportMenuOpen(false); }}
                                             className="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-bg-tertiary hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer focus-visible:bg-bg-tertiary outline-none"
                                         >
@@ -1161,7 +1161,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                 Clear Chat
                             </button>
                         )}
-                        
+
                         <button
                             onClick={() => setIsTicketModalOpen(true)}
                             className="bg-accent hover:bg-accent-strong text-accent-ink px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer"
@@ -1407,21 +1407,21 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
                     <div className="bg-card-background border border-border-default w-full max-w-lg rounded-2xl overflow-hidden shadow-md relative">
                         <div className="absolute top-0 left-0 w-full h-1 bg-accent"></div>
-                        
+
                         <div className="p-6 font-sans">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
                                     <Ticket className="text-accent-text" size={20} />
                                     Raise Support Ticket
                                 </h3>
-                                <button 
+                                <button
                                     onClick={() => setIsTicketModalOpen(false)}
                                     className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer"
                                 >
                                     <X size={18} />
                                 </button>
                             </div>
-                            
+
                             {ticketSuccess ? (
                                 <div className="py-8 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-200">
                                     <CheckCircle2 size={48} className="text-green-400 mb-3 animate-bounce" />
@@ -1440,7 +1440,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                             className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none transition-all font-sans font-medium"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-xs font-medium text-text-secondary mb-1 font-semibold">Priority Level</label>
                                         <select
@@ -1465,7 +1465,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                             rows={4}
                                         />
                                     </div>
-                                    
+
                                     <div className="pt-2 flex justify-end gap-3">
                                         <button
                                             onClick={() => setIsTicketModalOpen(false)}
@@ -1492,7 +1492,7 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                                                 };
                                                 tickets.push(newT);
                                                 localStorage.setItem("support_tickets", JSON.stringify(tickets));
-                                                
+
                                                 setTicketSuccess(true);
                                                 setTimeout(() => {
                                                     setTicketSuccess(false);
@@ -1555,8 +1555,8 @@ export default function ChatInterface({ role, handleLogout }: ChatInterfaceProps
                     <div className={cn(
                         "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-md backdrop-blur-md",
                         toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
-                        toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
-                        "bg-card-background border-border-default text-text-primary"
+                            toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
+                                "bg-card-background border-border-default text-text-primary"
                     )}>
                         <span className="text-xs font-semibold">{toast.message}</span>
                         <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer">

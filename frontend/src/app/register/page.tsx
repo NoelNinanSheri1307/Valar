@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bot, Loader2, UserPlus } from 'lucide-react';
 import { apiUrl } from '../../lib/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production-0e9a.up.railway.app';
 
 export default function RegisterPage() {
     const [username, setUsername] = useState('');
@@ -29,8 +29,14 @@ export default function RegisterPage() {
             });
 
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.detail || 'Registration failed');
+                let detail = 'Registration failed';
+                try {
+                    const data = await res.json();
+                    detail = data.detail || detail;
+                } catch {
+                    detail = `Server error (${res.status}). Please check backend connection.`;
+                }
+                throw new Error(detail);
             }
 
             router.push('/login');

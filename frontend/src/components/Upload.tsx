@@ -86,7 +86,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                 try {
                     const res = JSON.parse(xhr.responseText);
                     error = res.detail || error;
-                } catch (e) {}
+                } catch (e) { }
                 setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'error', error } : item));
             }
         });
@@ -95,7 +95,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
             setUploadQueue(prev => prev.map(item => item.id === id ? { ...item, status: 'error', error: 'Network error' } : item));
         });
 
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production-0e9a.up.railway.app';
         xhr.open('POST', `${baseUrl}/upload`);
         const token = localStorage.getItem('token');
         if (token) {
@@ -190,7 +190,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
                                 <div className="flex items-center gap-2.5 overflow-hidden">
                                     <FileType size={16} className={cn(
                                         item.status === 'success' ? 'text-green-500' :
-                                        item.status === 'error' ? 'text-red-500' : 'text-text-secondary'
+                                            item.status === 'error' ? 'text-red-500' : 'text-text-secondary'
                                     )} />
                                     <span className="text-sm font-semibold text-text-primary truncate max-w-[250px] sm:max-w-xs md:max-w-sm">
                                         {item.file.name}

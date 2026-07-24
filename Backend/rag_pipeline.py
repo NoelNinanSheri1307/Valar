@@ -56,7 +56,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 
 if not OPENROUTER_API_KEY:
-    raise ValueError("OPENROUTER_API_KEY not found in .env file")
+    print("[warning] OPENROUTER_API_KEY not found in environment variables")
 
 # =========================================================
 # RESULT TYPES

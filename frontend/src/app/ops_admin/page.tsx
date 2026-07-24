@@ -47,7 +47,7 @@ type SupportTicket = {
     user: string;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production.up.railway.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://valar-production-0e9a.up.railway.app';
 
 function cn(...classes: string[]) {
     return classes.filter(Boolean).join(" ");
@@ -558,9 +558,9 @@ export default function AdminPage() {
                         title={theme === 'dark' ? "Switch to Light Theme" : "Switch to Dark Theme"}
                     >
                         {theme === 'dark' ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
                         ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
                         )}
                     </button>
                 </div>
@@ -890,7 +890,7 @@ export default function AdminPage() {
                                                         )}>
                                                             {faq.is_active ? "Cached" : "Bypassed"}
                                                         </span>
-                                                        <button 
+                                                        <button
                                                             onClick={() => setFaqToDelete(faq.id)}
                                                             className="p-1 hover:bg-red-500/10 text-text-secondary hover:text-red-400 rounded transition-colors"
                                                             title="Delete Rule"
@@ -1010,7 +1010,7 @@ export default function AdminPage() {
                                         </h3>
                                         <p className="text-xs text-text-secondary mt-1">Audit trail of actions performed by support personnel and admins.</p>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={fetchActivityLogs}
                                         className="text-xs bg-button-secondary border border-border-default rounded-lg px-2.5 py-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-all flex items-center gap-1 font-medium cursor-pointer"
                                         title="Refresh Logs"
@@ -1046,13 +1046,13 @@ export default function AdminPage() {
                                                             <span className={cn(
                                                                 "px-2 py-0.5 rounded-[4px] font-bold text-[9px] uppercase tracking-wider",
                                                                 log.action === "Login" ? "bg-green-500/10 text-green-400 border border-green-500/15" :
-                                                                log.action === "Logout" ? "bg-bg-secondary text-text-secondary border border-border-default" :
-                                                                log.action === "Upload" ? "bg-blue-500/10 text-blue-400 border border-blue-500/15" :
-                                                                log.action === "Delete" ? "bg-red-500/10 text-red-400 border border-red-500/15" :
-                                                                log.action === "Re-index" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/15" :
-                                                                log.action === "FAQ Added" ? "bg-accent-soft text-accent-text border border-accent/15" :
-                                                                log.action === "FAQ Deleted" ? "bg-pink-500/10 text-pink-400 border border-pink-500/15" :
-                                                                "bg-amber-500/10 text-amber-400 border border-amber-500/15"
+                                                                    log.action === "Logout" ? "bg-bg-secondary text-text-secondary border border-border-default" :
+                                                                        log.action === "Upload" ? "bg-blue-500/10 text-blue-400 border border-blue-500/15" :
+                                                                            log.action === "Delete" ? "bg-red-500/10 text-red-400 border border-red-500/15" :
+                                                                                log.action === "Re-index" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/15" :
+                                                                                    log.action === "FAQ Added" ? "bg-accent-soft text-accent-text border border-accent/15" :
+                                                                                        log.action === "FAQ Deleted" ? "bg-pink-500/10 text-pink-400 border border-pink-500/15" :
+                                                                                            "bg-amber-500/10 text-amber-400 border border-amber-500/15"
                                                             )}>
                                                                 {log.action}
                                                             </span>
@@ -1083,13 +1083,13 @@ export default function AdminPage() {
                                     <span className="text-text-secondary">Vector Store</span>
                                     <span className={cn(
                                         "flex items-center gap-1.5 font-medium",
-                                        systemStatus.vectorStore === "Online" ? "text-green-400" : 
-                                        systemStatus.vectorStore === "Offline" ? "text-red-400" : "text-yellow-400"
+                                        systemStatus.vectorStore === "Online" ? "text-green-400" :
+                                            systemStatus.vectorStore === "Offline" ? "text-red-400" : "text-yellow-400"
                                     )}>
                                         <span className={cn(
                                             "w-2 h-2 rounded-full inline-block animate-pulse",
-                                            systemStatus.vectorStore === "Online" ? "bg-green-500" : 
-                                            systemStatus.vectorStore === "Offline" ? "bg-red-500" : "bg-yellow-500"
+                                            systemStatus.vectorStore === "Online" ? "bg-green-500" :
+                                                systemStatus.vectorStore === "Offline" ? "bg-red-500" : "bg-yellow-500"
                                         )}></span>
                                         {systemStatus.vectorStore}
                                     </span>
@@ -1102,13 +1102,13 @@ export default function AdminPage() {
                                     <span className="text-text-secondary">SQLite Base</span>
                                     <span className={cn(
                                         "flex items-center gap-1.5 font-medium",
-                                        systemStatus.sqLite === "Online" ? "text-green-400" : 
-                                        systemStatus.sqLite === "Offline" ? "text-red-400" : "text-yellow-400"
+                                        systemStatus.sqLite === "Online" ? "text-green-400" :
+                                            systemStatus.sqLite === "Offline" ? "text-red-400" : "text-yellow-400"
                                     )}>
                                         <span className={cn(
                                             "w-2 h-2 rounded-full inline-block animate-pulse",
-                                            systemStatus.sqLite === "Online" ? "bg-green-500" : 
-                                            systemStatus.sqLite === "Offline" ? "bg-red-500" : "bg-yellow-500"
+                                            systemStatus.sqLite === "Online" ? "bg-green-500" :
+                                                systemStatus.sqLite === "Offline" ? "bg-red-500" : "bg-yellow-500"
                                         )}></span>
                                         {systemStatus.sqLite}
                                     </span>
@@ -1124,7 +1124,7 @@ export default function AdminPage() {
                             <p className="text-sm text-text-secondary leading-relaxed mb-4 font-sans">
                                 Chunking size, retrieval thresholds, system prompts, and RAG toggles can be managed dynamically.
                             </p>
-                            <button 
+                            <button
                                 onClick={() => setIsSettingsOpen(true)}
                                 className="w-full py-2.5 bg-accent hover:bg-accent-strong text-xs text-accent-ink font-semibold rounded-lg transition-colors cursor-pointer shadow-md"
                             >
@@ -1135,277 +1135,277 @@ export default function AdminPage() {
                 </div>
             </div>
 
-        {/* Custom Deletion Confirmation Modal for FAQ rules */}
-        {faqToDelete !== null && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-card-background border border-border-default w-full max-w-sm rounded-2xl overflow-hidden shadow-md relative font-sans">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-                    <div className="p-6 text-center">
-                        <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                            <Trash2 size={20} />
-                        </div>
-                        <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete FAQ Rule?</h3>
-                        <p className="text-xs text-text-secondary mb-6 leading-relaxed font-sans">
-                            Are you sure you want to delete this FAQ rule? This will remove the instant cached response mapping.
-                        </p>
-                        <div className="flex gap-3 justify-center">
-                            <button
-                                onClick={() => setFaqToDelete(null)}
-                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer font-sans"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    const id = faqToDelete;
-                                    setFaqToDelete(null);
-                                    await confirmDeleteFaq(id);
-                                }}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* Custom Deletion Confirmation Modal for indexed documents */}
-        {fileToDelete !== null && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div className="bg-card-background border border-border-default w-full max-w-xs rounded-2xl overflow-hidden shadow-md relative font-sans">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-                    <div className="p-6 text-center">
-                        <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                            <Trash2 size={20} />
-                        </div>
-                        <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete Document?</h3>
-                        <p className="text-xs text-text-secondary mb-6 leading-relaxed break-all px-2 font-sans" title={fileToDelete}>
-                            Are you sure you want to delete "{fileToDelete}"? This cannot be undone.
-                        </p>
-                        <div className="flex gap-3 justify-center">
-                            <button
-                                onClick={() => setFileToDelete(null)}
-                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer font-sans"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    const fname = fileToDelete;
-                                    setFileToDelete(null);
-                                    await confirmDeleteFile(fname);
-                                }}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* Settings Drawer */}
-        {isSettingsOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex justify-end animate-in fade-in duration-300">
-                <div 
-                    className="bg-card-background border-l border-border-default w-full max-w-xl h-full flex flex-col shadow-md relative animate-in slide-in-from-right duration-300 font-sans"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent via-blue-500 to-cyan-400"></div>
-                    
-                    <div className="p-6 border-b border-border-default flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2 font-sans">
-                            <Settings className="text-accent-text font-bold" size={20} />
-                            Manage RAG System Settings
-                        </h3>
-                        <button 
-                            onClick={() => setIsSettingsOpen(false)}
-                            className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                        {/* RAG Parameters */}
-                        <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">RAG Chunking & Retrieval</h4>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Chunk Size (chars)</label>
-                                    <input
-                                        type="number"
-                                        value={chunkSize}
-                                        onChange={(e) => setChunkSize(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Chunk Overlap (chars)</label>
-                                    <input
-                                        type="number"
-                                        value={chunkOverlap}
-                                        onChange={(e) => setChunkOverlap(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
-                                    />
-                                </div>
+            {/* Custom Deletion Confirmation Modal for FAQ rules */}
+            {faqToDelete !== null && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-card-background border border-border-default w-full max-w-sm rounded-2xl overflow-hidden shadow-md relative font-sans">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                <Trash2 size={20} />
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">LLM Temperature</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        max="2"
-                                        value={temperature}
-                                        onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Top-K Retrieval</label>
-                                    <input
-                                        type="number"
-                                        value={topK}
-                                        onChange={(e) => setTopK(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Similarity Threshold</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        max="1"
-                                        value={similarityThreshold}
-                                        onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Max Context Chunks</label>
-                                    <input
-                                        type="number"
-                                        value={maxContextChunks}
-                                        onChange={(e) => setMaxContextChunks(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Feature Toggles */}
-                        <div className="space-y-3.5 pt-2">
-                            <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">Feature Toggles</h4>
-                            
-                            <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
-                                <div>
-                                    <p className="text-sm font-medium text-text-primary">Enable FAQ Router</p>
-                                    <p className="text-xs text-text-secondary">Route questions directly to canned answers if keyword matched</p>
-                                </div>
-                                <input 
-                                    type="checkbox"
-                                    checked={enableFaqRouter}
-                                    onChange={(e) => setEnableFaqRouter(e.target.checked)}
-                                    className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
-                                <div>
-                                    <p className="text-sm font-medium text-text-primary">Enable Web Search Fallback</p>
-                                    <p className="text-xs text-text-secondary">Search Exa web if no relevant document context exists</p>
-                                </div>
-                                <input 
-                                    type="checkbox"
-                                    checked={enableWebSearch}
-                                    onChange={(e) => setEnableWebSearch(e.target.checked)}
-                                    className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
-                                <div>
-                                    <p className="text-sm font-medium text-text-primary">Log Failed Retrievals</p>
-                                    <p className="text-xs text-text-secondary">Record gaps when user searches have low similarity scores</p>
-                                </div>
-                                <input 
-                                    type="checkbox"
-                                    checked={enableFailedLogging}
-                                    onChange={(e) => setEnableFailedLogging(e.target.checked)}
-                                    className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        {/* System Prompt Editor */}
-                        <div className="space-y-2 pt-2">
-                            <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">System Prompt Editor</h4>
-                            <p className="text-xs text-text-secondary leading-relaxed font-sans">
-                                Customize Valar's RAG instructions. Make sure to keep the required placeholders <code className="text-accent-strong font-semibold">{`{context}`}</code> and <code className="text-accent-strong font-semibold">{`{question}`}</code>.
+                            <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete FAQ Rule?</h3>
+                            <p className="text-xs text-text-secondary mb-6 leading-relaxed font-sans">
+                                Are you sure you want to delete this FAQ rule? This will remove the instant cached response mapping.
                             </p>
-                            <textarea
-                                rows={10}
-                                value={systemPrompt}
-                                onChange={(e) => setSystemPrompt(e.target.value)}
-                                className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-xs font-mono leading-relaxed focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none resize-none custom-scrollbar"
-                            />
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setFaqToDelete(null)}
+                                    className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer font-sans"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const id = faqToDelete;
+                                        setFaqToDelete(null);
+                                        await confirmDeleteFaq(id);
+                                    }}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="p-6 border-t border-border-default flex gap-3 justify-end shrink-0">
-                        <button
-                            onClick={handleResetSettings}
-                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans"
-                        >
-                            Reset to Default
-                        </button>
-                        <button
-                            onClick={() => setIsSettingsOpen(false)}
-                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSaveSettings}
-                            className="px-4 py-2 bg-accent hover:bg-accent-strong text-accent-ink rounded-xl text-xs font-semibold transition-colors cursor-pointer font-sans focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
-                        >
-                            Save Changes
+                </div>
+            )}
+
+            {/* Custom Deletion Confirmation Modal for indexed documents */}
+            {fileToDelete !== null && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-card-background border border-border-default w-full max-w-xs rounded-2xl overflow-hidden shadow-md relative font-sans">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                <Trash2 size={20} />
+                            </div>
+                            <h3 className="text-base font-semibold text-text-primary mb-2 font-sans">Delete Document?</h3>
+                            <p className="text-xs text-text-secondary mb-6 leading-relaxed break-all px-2 font-sans" title={fileToDelete}>
+                                Are you sure you want to delete "{fileToDelete}"? This cannot be undone.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setFileToDelete(null)}
+                                    className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer font-sans"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const fname = fileToDelete;
+                                        setFileToDelete(null);
+                                        await confirmDeleteFile(fname);
+                                    }}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Settings Drawer */}
+            {isSettingsOpen && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex justify-end animate-in fade-in duration-300">
+                    <div
+                        className="bg-card-background border-l border-border-default w-full max-w-xl h-full flex flex-col shadow-md relative animate-in slide-in-from-right duration-300 font-sans"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent via-blue-500 to-cyan-400"></div>
+
+                        <div className="p-6 border-b border-border-default flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2 font-sans">
+                                <Settings className="text-accent-text font-bold" size={20} />
+                                Manage RAG System Settings
+                            </h3>
+                            <button
+                                onClick={() => setIsSettingsOpen(false)}
+                                className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                            {/* RAG Parameters */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">RAG Chunking & Retrieval</h4>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Chunk Size (chars)</label>
+                                        <input
+                                            type="number"
+                                            value={chunkSize}
+                                            onChange={(e) => setChunkSize(parseInt(e.target.value) || 0)}
+                                            className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Chunk Overlap (chars)</label>
+                                        <input
+                                            type="number"
+                                            value={chunkOverlap}
+                                            onChange={(e) => setChunkOverlap(parseInt(e.target.value) || 0)}
+                                            className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">LLM Temperature</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            max="2"
+                                            value={temperature}
+                                            onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
+                                            className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Top-K Retrieval</label>
+                                        <input
+                                            type="number"
+                                            value={topK}
+                                            onChange={(e) => setTopK(parseInt(e.target.value) || 0)}
+                                            className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Similarity Threshold</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="1"
+                                            value={similarityThreshold}
+                                            onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value) || 0)}
+                                            className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-secondary mb-1 font-sans">Max Context Chunks</label>
+                                        <input
+                                            type="number"
+                                            value={maxContextChunks}
+                                            onChange={(e) => setMaxContextChunks(parseInt(e.target.value) || 0)}
+                                            className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Feature Toggles */}
+                            <div className="space-y-3.5 pt-2">
+                                <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">Feature Toggles</h4>
+
+                                <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
+                                    <div>
+                                        <p className="text-sm font-medium text-text-primary">Enable FAQ Router</p>
+                                        <p className="text-xs text-text-secondary">Route questions directly to canned answers if keyword matched</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={enableFaqRouter}
+                                        onChange={(e) => setEnableFaqRouter(e.target.checked)}
+                                        className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
+                                    <div>
+                                        <p className="text-sm font-medium text-text-primary">Enable Web Search Fallback</p>
+                                        <p className="text-xs text-text-secondary">Search Exa web if no relevant document context exists</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={enableWebSearch}
+                                        onChange={(e) => setEnableWebSearch(e.target.checked)}
+                                        className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
+                                    <div>
+                                        <p className="text-sm font-medium text-text-primary">Log Failed Retrievals</p>
+                                        <p className="text-xs text-text-secondary">Record gaps when user searches have low similarity scores</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={enableFailedLogging}
+                                        onChange={(e) => setEnableFailedLogging(e.target.checked)}
+                                        className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* System Prompt Editor */}
+                            <div className="space-y-2 pt-2">
+                                <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">System Prompt Editor</h4>
+                                <p className="text-xs text-text-secondary leading-relaxed font-sans">
+                                    Customize Valar's RAG instructions. Make sure to keep the required placeholders <code className="text-accent-strong font-semibold">{`{context}`}</code> and <code className="text-accent-strong font-semibold">{`{question}`}</code>.
+                                </p>
+                                <textarea
+                                    rows={10}
+                                    value={systemPrompt}
+                                    onChange={(e) => setSystemPrompt(e.target.value)}
+                                    className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-xs font-mono leading-relaxed focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none resize-none custom-scrollbar"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-border-default flex gap-3 justify-end shrink-0">
+                            <button
+                                onClick={handleResetSettings}
+                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans"
+                            >
+                                Reset to Default
+                            </button>
+                            <button
+                                onClick={() => setIsSettingsOpen(false)}
+                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveSettings}
+                                className="px-4 py-2 bg-accent hover:bg-accent-strong text-accent-ink rounded-xl text-xs font-semibold transition-colors cursor-pointer font-sans focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Toast Notification */}
+            {toast && (
+                <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
+                    <div className={cn(
+                        "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-md backdrop-blur-md",
+                        toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
+                            toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
+                                "bg-card-background border-border-default text-text-primary"
+                    )}>
+                        {toast.type === 'success' ? <CheckCircle2 size={16} className="text-green-400" /> :
+                            toast.type === 'error' ? <AlertCircle size={16} className="text-red-400" /> :
+                                <Loader2 size={16} className="animate-spin text-accent-text" />}
+                        <span className="text-xs font-semibold">{toast.message}</span>
+                        <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer">
+                            <X size={12} />
                         </button>
                     </div>
                 </div>
-            </div>
-        )}
-
-        {/* Custom Toast Notification */}
-        {toast && (
-            <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
-                <div className={cn(
-                    "px-4 py-3 rounded-xl border flex items-center gap-3 shadow-md backdrop-blur-md",
-                    toast.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-200" :
-                    toast.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-200" :
-                    "bg-card-background border-border-default text-text-primary"
-                )}>
-                    {toast.type === 'success' ? <CheckCircle2 size={16} className="text-green-400" /> : 
-                     toast.type === 'error' ? <AlertCircle size={16} className="text-red-400" /> : 
-                     <Loader2 size={16} className="animate-spin text-accent-text" />}
-                    <span className="text-xs font-semibold">{toast.message}</span>
-                    <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer">
-                        <X size={12} />
-                    </button>
-                </div>
-            </div>
-        )}
+            )}
         </main>
     );
 }
