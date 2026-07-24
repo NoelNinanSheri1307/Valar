@@ -33,10 +33,24 @@ os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 # CONFIG
 # =========================================================
 
-RELEVANCE_THRESHOLD = 0.15
 RETRIEVAL_K = 6
 MAX_HISTORY_TURNS = 6          # how many prior messages feed the rewriter
 SNIPPET_CHARS = 320            # citation preview length
+
+# Relevance cutoff is NOT portable across embedding models — each produces its
+# own score distribution, so a value tuned for one silently stops filtering
+# under another. Defaults below are set per provider further down, once the
+# provider is known. Override with RELEVANCE_THRESHOLD in .env.
+_RELEVANCE_THRESHOLD_BY_PROVIDER = {
+    # Measured against the indexed corpus (7 on-topic vs 6 off-topic queries):
+    # on-topic top scores 0.655-0.769, off-topic 0.366-0.395. 0.50 sits in the
+    # 0.26-wide gap with margin on both sides.
+    "gemini": 0.50,
+    # Legacy value. ada-002 scored on-topic ~0.85; 0.15 was permissive and
+    # leaned on the prompt's refusal rule rather than filtering much itself.
+    "openrouter": 0.15,
+    "openai": 0.15,
+}
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_DB_PATH", "./chroma_db")
@@ -81,35 +95,58 @@ class RagResult:
 # INDEXING & STORAGE
 # =========================================================
 
-# Configure embedding model: OpenRouter does not proxy embeddings reliably.
-# We check for OPENAI_API_KEY, GEMINI_API_KEY (Google text-embedding-004), or fall back gracefully.
+# Embedding provider selection.
+#
+# OpenRouter proxies embeddings but bills them against the same credit balance
+# as chat, and signals exhaustion badly: it returns HTTP 200 with the real
+# reason buried in the JSON body ("Prompt tokens limit exceeded: 5000 > 971"),
+# which the openai SDK discards, surfacing only "No embedding data received".
+# Gemini's free tier covers embeddings, so prefer it when a key is present.
+#
+# IMPORTANT: these providers emit different vector dimensionalities (Gemini
+# 3072, ada-002 1536) and are not interchangeable against an existing index.
+# Changing provider requires wiping the Chroma collection and re-ingesting
+# every document — see reindex_all_documents() in this module.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+EMBEDDING_PROVIDER = "unset"
+
 if GEMINI_API_KEY:
-    try:
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        embedding_func = GoogleGenerativeAIEmbeddings(
-            google_api_key=GEMINI_API_KEY,
-            model="models/text-embedding-004",
-        )
-    except Exception as _e:
-        print(f"[embeddings] GoogleGenerativeAIEmbeddings not initialized: {_e}")
-        embedding_func = OpenAIEmbeddings(
-            api_key=OPENAI_API_KEY or OPENROUTER_API_KEY,
-            base_url="https://api.openai.com/v1" if OPENAI_API_KEY else "https://openrouter.ai/api/v1",
-            model="text-embedding-3-small" if OPENAI_API_KEY else "openai/text-embedding-ada-002",
-        )
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+    # text-embedding-004 is retired (404 on v1beta as of 2026-07); the current
+    # generally-available model is gemini-embedding-001. The library defaults
+    # task_type to RETRIEVAL_DOCUMENT when embedding documents and
+    # RETRIEVAL_QUERY when embedding a query, which is what RAG wants.
+    embedding_func = GoogleGenerativeAIEmbeddings(
+        google_api_key=GEMINI_API_KEY,
+        model="models/gemini-embedding-001",
+    )
+    EMBEDDING_PROVIDER = "gemini:gemini-embedding-001"
 elif OPENAI_API_KEY:
     embedding_func = OpenAIEmbeddings(
         api_key=OPENAI_API_KEY,
         model="text-embedding-3-small",
     )
+    EMBEDDING_PROVIDER = "openai:text-embedding-3-small"
 else:
     embedding_func = OpenAIEmbeddings(
         api_key=OPENROUTER_API_KEY,
         base_url="https://openrouter.ai/api/v1",
         model="openai/text-embedding-ada-002",
     )
+    EMBEDDING_PROVIDER = "openrouter:openai/text-embedding-ada-002"
+
+_provider_family = EMBEDDING_PROVIDER.split(":", 1)[0]
+_env_threshold = os.getenv("RELEVANCE_THRESHOLD")
+RELEVANCE_THRESHOLD = (
+    float(_env_threshold)
+    if _env_threshold
+    else _RELEVANCE_THRESHOLD_BY_PROVIDER.get(_provider_family, 0.15)
+)
+
+print(f"[embeddings] provider: {EMBEDDING_PROVIDER} | relevance threshold: {RELEVANCE_THRESHOLD}")
 
 vectorstore = Chroma(
     persist_directory=CHROMA_PERSIST_DIR,
@@ -180,6 +217,57 @@ def delete_document_chunks(file_path: str, doc_id: int | None = None) -> int:
         vectorstore.delete(ids=ids)
 
     return len(ids)
+
+
+def reindex_all_documents(db: Session) -> dict[str, Any]:
+    """Drop every vector and re-embed all indexed documents from disk.
+
+    Required after changing EMBEDDING_PROVIDER: vectors from two different
+    models are not comparable, and a dimensionality change makes Chroma reject
+    writes outright ("Embedding dimension X does not match collection
+    dimensionality Y").
+
+    Only touches the vector store — the Document rows and the files on disk are
+    the source of truth and are left alone, so this is re-runnable.
+    """
+    global vectorstore
+    from database import Document
+
+    # Recreate the collection rather than deleting ids: Chroma pins
+    # dimensionality at collection level, so a dimension change needs the old
+    # collection gone entirely.
+    try:
+        vectorstore.delete_collection()
+    except Exception as e:
+        print(f"[reindex] could not drop collection (continuing): {e}")
+
+    vectorstore = Chroma(
+        persist_directory=CHROMA_PERSIST_DIR,
+        embedding_function=embedding_func,
+    )
+
+    results: dict[str, Any] = {"provider": EMBEDDING_PROVIDER, "documents": [], "total_chunks": 0}
+
+    for doc in db.query(Document).all():
+        if not os.path.exists(doc.stored_path):
+            doc.status = "error"
+            doc.error_detail = "Source file missing from disk; re-upload required."
+            results["documents"].append({"filename": doc.filename, "status": "missing"})
+            continue
+        try:
+            count = ingest_document(doc.stored_path, doc_id=doc.id)
+            doc.chunk_count = count
+            doc.status = "indexed"
+            doc.error_detail = None
+            results["documents"].append({"filename": doc.filename, "chunks": count})
+            results["total_chunks"] += count
+        except Exception as e:
+            doc.status = "error"
+            doc.error_detail = str(e)[:1000]
+            results["documents"].append({"filename": doc.filename, "status": "error", "detail": str(e)[:200]})
+
+    db.commit()
+    return results
 
 
 # =========================================================
