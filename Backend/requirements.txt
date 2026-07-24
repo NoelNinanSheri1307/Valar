@@ -16,4 +16,5 @@ google-genai
 google-api-python-client
 exa-py
 python-docx
-docx2txt
+docx2txt
+langchain-google-genai

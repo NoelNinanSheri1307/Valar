@@ -81,11 +81,35 @@ class RagResult:
 # INDEXING & STORAGE
 # =========================================================
 
-embedding_func = OpenAIEmbeddings(
-    api_key=OPENROUTER_API_KEY,
-    base_url="https://openrouter.ai/api/v1",
-    model="openai/text-embedding-ada-002",
-)
+# Configure embedding model: OpenRouter does not proxy embeddings reliably.
+# We check for OPENAI_API_KEY, GEMINI_API_KEY (Google text-embedding-004), or fall back gracefully.
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if GEMINI_API_KEY:
+    try:
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        embedding_func = GoogleGenerativeAIEmbeddings(
+            google_api_key=GEMINI_API_KEY,
+            model="models/text-embedding-004",
+        )
+    except Exception as _e:
+        print(f"[embeddings] GoogleGenerativeAIEmbeddings not initialized: {_e}")
+        embedding_func = OpenAIEmbeddings(
+            api_key=OPENAI_API_KEY or OPENROUTER_API_KEY,
+            base_url="https://api.openai.com/v1" if OPENAI_API_KEY else "https://openrouter.ai/api/v1",
+            model="text-embedding-3-small" if OPENAI_API_KEY else "openai/text-embedding-ada-002",
+        )
+elif OPENAI_API_KEY:
+    embedding_func = OpenAIEmbeddings(
+        api_key=OPENAI_API_KEY,
+        model="text-embedding-3-small",
+    )
+else:
+    embedding_func = OpenAIEmbeddings(
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1",
+        model="openai/text-embedding-ada-002",
+    )
 
 vectorstore = Chroma(
     persist_directory=CHROMA_PERSIST_DIR,
