@@ -231,16 +231,28 @@ You can:
 Rules:
 1. If the question is a greeting, or about your identity, capabilities, or what you can help with,
    answer directly in a friendly manner without using the context.
-2. For all support-related queries, answer ONLY using the provided context.
-3. CRITICAL RULE: If the exact answer or specific details relevant to the query are NOT present in the Context block below, you MUST respond exactly with the phrase: "Sorry, I don't know based on the given context." Do not provide any other information or guesses. Do not provide a partial answer.
-4. CITATIONS: Every factual sentence drawn from the context MUST end with the bracketed
-   marker of the source it came from, e.g. [1] or [2]. Use the numbers exactly as they
-   appear in the Context block. Never invent a citation number that is not in the context.
-5. Keep answers clear, simple, and professional.
-6. Provide troubleshooting steps in bullet points when applicable.
-7. Do NOT add assumptions or external information.
+2. If the question is a natural follow-up to something already established earlier in this
+   conversation — including a prior FAQ answer, a prior document-grounded answer, or anything
+   else already stated below in "Conversation so far" — answer using that established
+   information. Do not refuse just because the Context block is empty or unrelated; the prior
+   conversation is a valid basis for follow-ups on the same topic.
+3. For any other support-related query — one that introduces a fact not already established in
+   this conversation — answer ONLY using the provided Context block.
+4. CRITICAL RULE: If a query falls under Rule 3 and the answer is NOT present in the Context
+   block, AND it is not covered by Rule 2, you MUST respond exactly with the phrase: "Sorry, I
+   don't know based on the given context." This applies to genuinely new topics unrelated to
+   support, this conversation, or the context — for example general-knowledge questions like
+   "who is Spider-Man" or "who is the Prime Minister of India." Do not provide a partial answer.
+5. CITATIONS: Only when a sentence is drawn from the Context block, end it with the bracketed
+   marker of the source it came from, e.g. [1] or [2]. Use the numbers exactly as they appear in
+   the Context block. Never invent a citation number, and never cite the conversation history —
+   it is not a numbered source.
+6. Keep answers clear, simple, and professional.
+7. Provide troubleshooting steps in bullet points when applicable.
+8. Do NOT add assumptions or external information beyond the context or the established
+   conversation.
 
-Conversation so far (for pronoun and follow-up resolution only — never cite it as a source):
+Conversation so far (a valid source for follow-ups under Rule 2 — but never cite it with a [n] marker):
 {history}
 
 Context:
@@ -257,11 +269,19 @@ rewrite_prompt = PromptTemplate(
     input_variables=["history", "question"],
     template="""
 Rewrite the user's latest question into a standalone search query that makes sense
-without the conversation history. Resolve pronouns and implicit references
-("it", "that pump", "the same procedure") using the history.
+without the conversation history. Resolve pronouns, implicit references, and action follow-ups
+("it", "that pump", "the same procedure", "this topic", "search on web for this topic") using the history.
 
-Return ONLY the rewritten query, with no preamble or quotes.
-If the question is already standalone, return it unchanged.
+IMPORTANT INSTRUCTIONS:
+- If the latest question requests an action like "search on web for this topic" or "tell me more about it",
+  extract the actual subject/topic from the history and return the topic as a standalone search query.
+  Example History:
+    User: What is the formula NEMA provides for temperature rise at high altitude?
+    Assistant: TRSL = TRA * [1 - (ALT-3300)/33000]...
+  Example Question: search on web for this topic
+  Standalone Query: NEMA formula for temperature rise at high altitude
+
+Return ONLY the rewritten query with no preamble or quotes.
 
 Conversation history:
 {history}
@@ -275,11 +295,16 @@ Standalone query:"""
 # LLM
 # =========================================================
 
+# Overridable without a code change, so switching between a paid model and a
+# free one (any id ending in `:free`) is an env edit plus a restart.
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1000"))
+
 llm = ChatOpenAI(
     api_key=OPENROUTER_API_KEY,
     base_url="https://openrouter.ai/api/v1",
-    model="openai/gpt-oss-120b",
-    max_tokens=1000
+    model=OPENROUTER_MODEL,
+    max_tokens=LLM_MAX_TOKENS,
 )
 
 # =========================================================
@@ -358,25 +383,73 @@ def exa_search_fallback(question: str) -> tuple[str, list[Citation]]:
     Raises on API failure so the caller can fall back to an honest "I don't
     know" instead of labelling an error string as a web-sourced answer.
     """
-    response = exa.answer(question)
-    answer_text = response.answer
-
-    links = re.findall(r'\[([^\]]+)\]\((https?://[^\)]+)\)', answer_text)
+    try:
+        response = exa.answer(question, text=True)
+        answer_text = getattr(response, "answer", "") or str(response)
+    except Exception as e:
+        print(f"[exa] answer call failed, trying search_and_contents fallback: {e}")
+        try:
+            search_res = exa.search_and_contents(question, num_results=5, text=True)
+            results = getattr(search_res, "results", [])
+            snippets = [f"Source [{i+1}] {r.title}: {r.text[:300]}" for i, r in enumerate(results) if getattr(r, "text", None)]
+            prompt_text = f"Based on these web search results, answer the question: {question}\n\nWeb Sources:\n" + "\n".join(snippets)
+            answer_text = llm.invoke(prompt_text).content
+            response = search_res
+        except Exception as err:
+            raise err
 
     citations: list[Citation] = []
     seen_urls: set[str] = set()
+
+    exa_citations = getattr(response, "citations", None) or getattr(response, "results", None) or []
+    for item in exa_citations:
+        url = getattr(item, "url", None)
+        title = getattr(item, "title", None) or url or "Web Source"
+        text_content = getattr(item, "text", "") or getattr(item, "snippet", "") or ""
+        snippet = " ".join(str(text_content).split())[:220]
+
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            citations.append(Citation(
+                index=len(citations) + 1,
+                document=title,
+                snippet=snippet,
+                score=0.0,
+                url=url,
+            ))
+
+    # Index whatever text Exa returned, keyed by URL, so links found only in the
+    # answer body can still show a preview instead of a bare title.
+    text_by_url: dict[str, str] = {}
+    for item in exa_citations:
+        item_url = getattr(item, "url", None)
+        if not item_url:
+            continue
+        raw = (
+            getattr(item, "text", "")
+            or getattr(item, "snippet", "")
+            or getattr(item, "summary", "")
+            or ""
+        )
+        if not raw:
+            highlights = getattr(item, "highlights", None) or []
+            if highlights:
+                raw = " ".join(str(h) for h in highlights)
+        if raw:
+            text_by_url[item_url] = " ".join(str(raw).split())[:220]
+
+    links = re.findall(r'\[([^\]]+)\]\((https?://[^\)]+)\)', answer_text)
     for title, url in links:
         if url not in seen_urls:
             seen_urls.add(url)
             citations.append(Citation(
                 index=len(citations) + 1,
-                document=title,
-                snippet="",
+                document=title or "Web Source",
+                snippet=text_by_url.get(url, ""),
                 score=0.0,
                 url=url,
             ))
 
-    # Strip Exa's inline citation blocks — we render citations ourselves.
     answer_text = re.sub(r'\s*\((?:\[[^\]]+\]\((?:https?://[^\)]+)\)(?:,\s*)?)+\)', '', answer_text)
     answer_text = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', r'\1', answer_text)
 
@@ -452,6 +525,91 @@ def _cited_indices(answer: str) -> set[int]:
     return {int(n) for n in re.findall(r'\[(\d{1,2})\]', answer)}
 
 
+# An explicit instruction to go to the web. These are commands, not questions —
+# "search the web about this" carries no topic of its own, so the generic
+# relevance check reads it as off-topic and would silently suppress the search
+# the user just asked for.
+_WEB_SEARCH_INTENT = re.compile(
+    r'\b('
+    # "search ... the web" / "look ... up online" — allow a short gap so
+    # "search about this in the web" and "search this up online" both match,
+    # while staying inside one clause (no sentence punctuation in the gap).
+    r'(?:search|look|find|check|browse|google)\b[^.?!\n]{0,40}?\b(?:web|internet|online|google)'
+    r'|(?:web|internet|online|google)\s+search'
+    r'|google\s+(?:it|this|that)'
+    r')\b',
+    re.IGNORECASE,
+)
+
+
+def wants_web_search(question: str) -> bool:
+    """True when the user explicitly asked us to search the web."""
+    return bool(_WEB_SEARCH_INTENT.search(question or ""))
+
+
+def describe_llm_failure(err: Exception) -> str:
+    """Turn a provider exception into something the operator can act on.
+
+    A bare "network error" sends people hunting through their own stack for a
+    fault that is actually an account or rate-limit problem upstream.
+    """
+    text = str(err)
+    lowered = text.lower()
+
+    if "402" in text or "more credits" in lowered or "insufficient" in lowered:
+        return (
+            "**The language model is out of credits.**\n\n"
+            "Valar reached OpenRouter but the account can't fund this request. "
+            "Retrieval and your document library are unaffected.\n\n"
+            "To fix this, either:\n"
+            "- Add credits at [openrouter.ai/settings/credits](https://openrouter.ai/settings/credits), or\n"
+            "- Switch `OPENROUTER_MODEL` to a free model (one whose id ends in `:free`) and restart the backend."
+        )
+    if "429" in text or "rate limit" in lowered:
+        return (
+            "**Rate limited by the model provider.**\n\n"
+            "Too many requests in a short window. Wait a few seconds and try again."
+        )
+    if "401" in text or "invalid api key" in lowered or "no auth" in lowered:
+        return (
+            "**The model provider rejected our API key.**\n\n"
+            "Check that `OPENROUTER_API_KEY` in the backend `.env` is present and valid, then restart the backend."
+        )
+    if "timeout" in lowered or "timed out" in lowered:
+        return (
+            "**The model took too long to respond.**\n\n"
+            "This is usually transient — please try again."
+        )
+    return (
+        "**The language model is temporarily unavailable.**\n\n"
+        f"Your documents and search index are fine. Technical detail: `{text[:180]}`"
+    )
+
+
+# The command wrapper itself, to be removed before the topic is sent to Exa.
+# Every alternative is \b-anchored — without that, the "on" filler ate the
+# start of "online" and left "line" in the query.
+_WEB_SEARCH_COMMAND_NOISE = re.compile(
+    r'\b(?:please|kindly|can|could|you)\b'
+    r'|\b(?:search|look|find|check|browse|google)\b'
+    r'|\b(?:web|internet|online)\b'
+    r'|\b(?:it|this|that|them|more|out|up|for|about|regarding|on|in|over|the|a|an|of)\b',
+    re.IGNORECASE,
+)
+
+
+def strip_web_command(text: str) -> str:
+    """Remove the 'search the web for ...' wrapper, leaving the topic.
+
+    Returns "" when nothing meaningful survives — the caller should then fall
+    back to the history-rewritten query rather than searching for filler.
+    """
+    stripped = _WEB_SEARCH_COMMAND_NOISE.sub(' ', text or '')
+    stripped = re.sub(r'\s+', ' ', stripped).strip(' ,.;:-?!')
+    # Require real content, not one stray token like "this".
+    return stripped if len(stripped) >= 4 and len(stripped.split()) >= 1 else ''
+
+
 def rag_answer(
     question: str,
     db: Session = None,
@@ -481,8 +639,35 @@ def rag_answer(
 
     # 2. Resolve follow-ups, then retrieve
     search_query = rewrite_query(question, history)
+    explicit_web = wants_web_search(question)
+
+    # An explicit "search the web" is a direct instruction — honour it without
+    # first making the user sit through a document answer they didn't ask for.
+    if explicit_web:
+        try:
+            web_answer, web_citations = exa_search_fallback(search_query)
+            return RagResult(
+                answer=web_answer,
+                citations=web_citations,
+                confidence=0.35 if web_citations else 0.2,
+                source_type="web",
+                retrieval_failed=False,
+            )
+        except Exception as e:
+            print(f"Exa search (explicit request) failed: {e}")
+            return RagResult(
+                answer=(
+                    "I couldn't run a web search just now — the search service is "
+                    "unavailable. Please try again shortly, or ask me to answer from "
+                    "your indexed documents instead."
+                ),
+                citations=[],
+                confidence=0.0,
+                source_type="none",
+                retrieval_failed=True,
+            )
+
     context, citations, highest_score = retrieve_context(search_query)
-    retrieval_failed = (not context or highest_score < RELEVANCE_THRESHOLD)
 
     chain = prompt | llm | StrOutputParser()
     answer = clean_answer(chain.invoke({
@@ -493,8 +678,6 @@ def rag_answer(
 
     answer_lower = answer.lower()
     refused = any(trigger in answer_lower for trigger in _FALLBACK_TRIGGERS)
-    if refused:
-        retrieval_failed = True
 
     source_type = "documents"
     confidence = _confidence_from(highest_score, citations)
@@ -505,7 +688,10 @@ def rag_answer(
         confidence = 0.0
         source_type = "none"
 
-        if is_support_relevant(question):
+        # Judge relevance on the rewritten query, not the raw one: a follow-up
+        # like "and what about that?" carries no topic of its own and would
+        # otherwise be dismissed as off-topic, suppressing a valid fallback.
+        if is_support_relevant(search_query):
             extended_query = f"{search_query} technical support troubleshooting manual"
             try:
                 web_answer, web_citations = exa_search_fallback(extended_query)
@@ -523,14 +709,21 @@ def rag_answer(
                     "Try rephrasing, or ask an administrator to upload the relevant document."
                 )
     else:
-        # Drop citations the model never referenced so the UI doesn't show
-        # sources that had no bearing on the answer.
+        # Keep only the citations the model actually referenced. If it cited
+        # nothing, it didn't draw on the retrieved context at all — under the
+        # new Rule 2 it likely answered from the established conversation (or
+        # is a greeting/identity reply under Rule 1) — so don't attach
+        # document confidence/sources to an answer that isn't grounded in them.
         used = _cited_indices(answer)
-        if used:
-            citations = [c for c in citations if c.index in used]
+        citations = [c for c in citations if c.index in used]
+        if not citations:
+            confidence = 0.0
+            source_type = "conversation" if history else "none"
 
-    # 4. Log the gap for the knowledge-gap dashboard
-    if retrieval_failed and db is not None:
+    # 4. Log the gap for the knowledge-gap dashboard. Only a genuine refusal
+    # counts as a gap — a follow-up answered from conversation memory
+    # succeeded, and logging it would make the dashboard misleading.
+    if refused and db is not None:
         try:
             db.add(FailedRetrieval(
                 query_text=question,
@@ -547,7 +740,7 @@ def rag_answer(
         citations=citations,
         confidence=confidence,
         source_type=source_type,
-        retrieval_failed=retrieval_failed,
+        retrieval_failed=refused,
     )
 
 
@@ -637,3 +830,330 @@ def generate_follow_ups(
             break
 
     return suggestions
+
+
+# =========================================================
+# AGENTIC STREAMING RAG PIPELINE
+# =========================================================
+
+def run_agentic_rag_stream(
+    question: str,
+    db: Session = None,
+    history: list[dict[str, str]] | None = None,
+):
+    """
+    Generator yielding real-time agent execution events and streamed tokens.
+    Yields dict objects with keys: 'type' ('thought'|'tool_start'|'tool_end'|'reflection'|'token'|'final')
+    """
+    yield {
+        "type": "thought",
+        "content": f"Analyzing user query: '{question}' across canned rules and vector indexes..."
+    }
+
+    # Detect explicit web search request intent. A fixed substring list missed
+    # ordinary phrasings — "search on the web about this" matches neither
+    # "search on web" nor "search the web" — so the user's explicit request was
+    # silently dropped. wants_web_search() handles the intervening words.
+    is_explicit_web_request = wants_web_search(question)
+
+    # 1. Resolve history & rewrite query first
+    search_query = question
+    if history:
+        yield {
+            "type": "thought",
+            "content": "Resolving follow-up references against conversation history..."
+        }
+        search_query = rewrite_query(question, history)
+        if search_query != question:
+            yield {
+                "type": "reflection",
+                "content": f"Rewrote follow-up question to standalone query: '{search_query}'"
+            }
+
+    # Strip the "search the web" instruction itself so it isn't sent to Exa as
+    # part of the topic. It can appear anywhere in the sentence, not just as a
+    # prefix ("search about this in the web"), so this is not anchored to ^.
+    if is_explicit_web_request:
+        # Only accept the cleanup if something meaningful survives; otherwise the
+        # question was pure command ("search the web") and the rewritten query
+        # from history is the better search term.
+        stripped = strip_web_command(search_query)
+        if stripped:
+            search_query = stripped
+
+    # If user explicitly requested web search, route directly to Exa Web Search tool
+    if is_explicit_web_request:
+        yield {
+            "type": "thought",
+            "content": f"User explicitly requested web search. Routing directly to Exa Web Search Tool for: '{search_query}'..."
+        }
+        yield {
+            "type": "tool_start",
+            "tool": "exa_web_search",
+            "input": {"query": search_query}
+        }
+
+        try:
+            web_answer, web_citations = exa_search_fallback(f"{search_query} technical manual troubleshooting")
+            yield {
+                "type": "tool_end",
+                "tool": "exa_web_search",
+                "output": {"web_citations_found": len(web_citations)}
+            }
+            yield {
+                "type": "reflection",
+                "content": f"Retrieved web search results from {len(web_citations)} verified external sources."
+            }
+
+            for token in web_answer:
+                yield {"type": "token", "content": token}
+
+            yield {
+                "type": "final",
+                "answer": web_answer,
+                "citations": [asdict(c) for c in web_citations],
+                "confidence": 0.35 if web_citations else 0.2,
+                "source_type": "web",
+            }
+            return
+        except Exception as e:
+            print(f"Exa search failed for explicit request: {e}")
+            err_msg = (
+                "I tried searching the web for this topic, but the external web search engine is currently unreachable. "
+                "Please try again in a few moments."
+            )
+            for token in err_msg:
+                yield {"type": "token", "content": token}
+            yield {
+                "type": "final",
+                "answer": err_msg,
+                "citations": [],
+                "confidence": 0.0,
+                "source_type": "none",
+            }
+            return
+
+    # 2. Check canned FAQ rules
+    yield {
+        "type": "tool_start",
+        "tool": "check_canned_faqs",
+        "input": {"query": question}
+    }
+
+    faq_matched = False
+    best_match = None
+    if db is not None:
+        try:
+            active_rules = db.query(FAQRule).filter(FAQRule.is_active == True).all()  # noqa: E712
+            q_lower_clean = question.lower()
+            matches = [r for r in active_rules if r.keyword.lower() in q_lower_clean]
+            if matches:
+                best_match = max(matches, key=lambda r: len(r.keyword))
+                faq_matched = True
+        except Exception as e:
+            print(f"Error matching FAQ rules: {e}")
+
+    if faq_matched and best_match:
+        yield {
+            "type": "tool_end",
+            "tool": "check_canned_faqs",
+            "output": {"match": True, "keyword": best_match.keyword}
+        }
+        yield {
+            "type": "reflection",
+            "content": f"Matched exact canned FAQ rule for '{best_match.keyword}'. Instant response triggered."
+        }
+
+        for token in best_match.response:
+            yield {"type": "token", "content": token}
+
+        yield {
+            "type": "final",
+            "answer": best_match.response,
+            "citations": [],
+            "confidence": 1.0,
+            "source_type": "faq",
+        }
+        return
+
+    yield {
+        "type": "tool_end",
+        "tool": "check_canned_faqs",
+        "output": {"match": False}
+    }
+
+    # 3. Vector database retrieval tool
+    yield {
+        "type": "thought",
+        "content": f"Executing dense passage retrieval for query: '{search_query}'..."
+    }
+    yield {
+        "type": "tool_start",
+        "tool": "chroma_vector_search",
+        "input": {"query": search_query, "k": RETRIEVAL_K}
+    }
+
+    context, citations, highest_score = retrieve_context(search_query)
+
+    yield {
+        "type": "tool_end",
+        "tool": "chroma_vector_search",
+        "output": {
+            "retrieved_chunks": len(citations),
+            "highest_similarity_score": round(highest_score, 3),
+            "documents": list(set(c.document for c in citations))
+        }
+    }
+
+    confidence = _confidence_from(highest_score, citations)
+    yield {
+        "type": "reflection",
+        "content": f"Retrieved {len(citations)} document chunk(s) with max similarity score {round(highest_score, 3)} (Blended confidence: {confidence})."
+    }
+
+    # 4. Check if local retrieval succeeded before generating answer
+    if not context or not citations or highest_score < RELEVANCE_THRESHOLD:
+        yield {
+            "type": "reflection",
+            "content": f"No local document chunks met relevance threshold ({RELEVANCE_THRESHOLD}). Evaluating query for web search fallback..."
+        }
+
+        if is_support_relevant(search_query):
+            extended_query = f"{search_query} technical support troubleshooting manual"
+            yield {
+                "type": "thought",
+                "content": f"Query evaluated as support-relevant. Activating Exa Web Search tool for '{extended_query}'..."
+            }
+            yield {
+                "type": "tool_start",
+                "tool": "exa_web_search",
+                "input": {"query": extended_query}
+            }
+
+            try:
+                web_answer, web_citations = exa_search_fallback(extended_query)
+                yield {
+                    "type": "tool_end",
+                    "tool": "exa_web_search",
+                    "output": {"web_citations_found": len(web_citations)}
+                }
+                yield {
+                    "type": "reflection",
+                    "content": f"Retrieved web search results from {len(web_citations)} verified external sources."
+                }
+
+                for token in web_answer:
+                    yield {"type": "token", "content": token}
+
+                yield {
+                    "type": "final",
+                    "answer": web_answer,
+                    "citations": [asdict(c) for c in web_citations],
+                    "confidence": 0.35 if web_citations else 0.2,
+                    "source_type": "web",
+                }
+                return
+            except Exception as e:
+                print(f"Exa search fallback failed: {e}")
+                err_text = (
+                    "I couldn't find anything about this in your indexed documents, "
+                    "and the web search fallback is currently unavailable. "
+                    "Try rephrasing, or ask an administrator to upload the relevant document."
+                )
+                for token in err_text:
+                    yield {"type": "token", "content": token}
+
+                yield {
+                    "type": "final",
+                    "answer": err_text,
+                    "citations": [],
+                    "confidence": 0.0,
+                    "source_type": "none",
+                }
+                return
+        else:
+            refusal_text = "I couldn't find relevant information in your indexed document library for this query."
+            for token in refusal_text:
+                yield {"type": "token", "content": token}
+
+            yield {
+                "type": "final",
+                "answer": refusal_text,
+                "citations": [],
+                "confidence": 0.0,
+                "source_type": "none",
+            }
+            return
+
+    # 5. Local document retrieval succeeded — synthesize answer using LLM
+    yield {
+        "type": "thought",
+        "content": "Synthesizing answer using grounded prompt and retrieved document context..."
+    }
+
+    chain = prompt | llm | StrOutputParser()
+
+    full_answer_chunks = []
+    try:
+        stream = chain.stream({
+            "context": context,
+            "question": question,
+            "history": format_history(history),
+        })
+        for chunk in stream:
+            full_answer_chunks.append(chunk)
+            yield {"type": "token", "content": chunk}
+    except Exception as e:
+        print(f"Error during LLM streaming: {e}")
+        try:
+            # One non-streaming retry — some providers fail only on SSE.
+            answer_text = chain.invoke({
+                "context": context,
+                "question": question,
+                "history": format_history(history),
+            })
+            full_answer_chunks.append(answer_text)
+            yield {"type": "token", "content": answer_text}
+        except Exception as retry_err:
+            # This retry used to be unguarded, so a provider outage propagated
+            # out of the generator, tore down the SSE connection mid-response,
+            # and surfaced in the browser as a bare "network error".
+            print(f"LLM retry also failed: {retry_err}")
+            err_text = describe_llm_failure(retry_err)
+            for token in err_text:
+                yield {"type": "token", "content": token}
+            yield {
+                "type": "final",
+                "answer": err_text,
+                "citations": [],
+                "confidence": 0.0,
+                "source_type": "none",
+                "error": True,
+            }
+            return
+
+    raw_answer = "".join(full_answer_chunks)
+    cleaned_ans = clean_answer(raw_answer)
+    used = _cited_indices(cleaned_ans)
+    citations = [c for c in citations if c.index in used]
+
+    # A refusal is not an answer "from the conversation" — labelling it that way
+    # produced the contradictory "Answered from earlier in this conversation"
+    # banner sitting directly above "Sorry, I don't know based on the context."
+    refused = any(t in cleaned_ans.lower() for t in _FALLBACK_TRIGGERS)
+    if refused:
+        source_type = "none"
+        confidence = 0.0
+    elif citations:
+        source_type = "documents"
+    else:
+        source_type = "conversation" if history else "none"
+        confidence = 0.0
+
+    yield {
+        "type": "final",
+        "answer": cleaned_ans,
+        "citations": [asdict(c) for c in citations],
+        "confidence": confidence,
+        "source_type": source_type,
+    }

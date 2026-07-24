@@ -100,7 +100,7 @@ export type Citation = {
     url: string | null;
 };
 
-export type SourceType = "documents" | "web" | "faq" | "none";
+export type SourceType = "documents" | "web" | "faq" | "conversation" | "none";
 
 export type AskResponse = {
     question: string;

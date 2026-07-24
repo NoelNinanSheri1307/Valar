@@ -547,7 +547,7 @@ export default function AdminPage() {
                         <ArrowLeft size={20} />
                     </button>
                     <div className="flex items-center gap-2 text-text-primary font-medium text-lg">
-                        <LayoutDashboard size={20} className="text-purple-500" />
+                        <LayoutDashboard size={20} className="text-accent-text" />
                         Valar — Support Dashboard
                     </div>
                 </div>
@@ -577,52 +577,52 @@ export default function AdminPage() {
                 <div className="flex border-b border-border-default gap-6 text-sm text-text-secondary mt-2">
                     <button
                         onClick={() => setActiveTab('documents')}
-                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'documents' ? "text-purple-400 font-semibold" : "hover:text-white")}
+                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'documents' ? "text-accent-text font-semibold" : "hover:text-accent-text")}
                     >
                         <FileText size={15} />
                         Knowledge Documents
-                        {activeTab === 'documents' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
+                        {activeTab === 'documents' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-accent rounded-full" />}
                     </button>
 
                     <button
                         onClick={() => setActiveTab('tickets')}
-                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'tickets' ? "text-purple-400 font-semibold" : "hover:text-text-primary")}
+                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'tickets' ? "text-accent-text font-semibold" : "hover:text-text-primary")}
                     >
                         <Ticket size={15} />
                         Support Tickets
                         {tickets.filter(t => t.status !== "Resolved").length > 0 && (
-                            <span className="bg-purple-600 text-white rounded-full text-[10px] w-4.5 h-4.5 flex items-center justify-center font-bold">
+                            <span className="bg-accent text-accent-ink rounded-full text-[10px] w-4.5 h-4.5 flex items-center justify-center font-bold">
                                 {tickets.filter(t => t.status !== "Resolved").length}
                             </span>
                         )}
-                        {activeTab === 'tickets' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
+                        {activeTab === 'tickets' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-accent rounded-full" />}
                     </button>
 
                     <button
                         onClick={() => setActiveTab('faq')}
-                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'faq' ? "text-purple-400 font-semibold" : "hover:text-text-primary")}
+                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'faq' ? "text-accent-text font-semibold" : "hover:text-text-primary")}
                     >
                         <HelpCircle size={15} />
                         FAQ Canned Layer
-                        {activeTab === 'faq' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
+                        {activeTab === 'faq' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-accent rounded-full" />}
                     </button>
 
                     <button
                         onClick={() => setActiveTab('analytics')}
-                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'analytics' ? "text-purple-400 font-semibold" : "hover:text-text-primary")}
+                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'analytics' ? "text-accent-text font-semibold" : "hover:text-text-primary")}
                     >
                         <BarChart2 size={15} />
                         Analytics & Gaps
-                        {activeTab === 'analytics' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
+                        {activeTab === 'analytics' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-accent rounded-full" />}
                     </button>
 
                     <button
                         onClick={() => { setActiveTab('activity'); fetchActivityLogs(); }}
-                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'activity' ? "text-purple-400 font-semibold" : "hover:text-text-primary")}
+                        className={cn("pb-3 font-medium transition-all relative flex items-center gap-1.5", activeTab === 'activity' ? "text-accent-text font-semibold" : "hover:text-text-primary")}
                     >
                         <Activity size={15} />
                         Activity Logs
-                        {activeTab === 'activity' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 rounded-full" />}
+                        {activeTab === 'activity' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-accent rounded-full" />}
                     </button>
                 </div>
 
@@ -636,7 +636,7 @@ export default function AdminPage() {
 
                                 <div className="bg-card-background border border-border-default rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[300px]">
                                     <h3 className="font-medium text-text-primary flex items-center gap-2 mb-4">
-                                        <FileText size={18} className="text-purple-400" />
+                                        <FileText size={18} className="text-accent-text" />
                                         Indexed Knowledge Base
                                     </h3>
                                     {files.length === 0 ? (
@@ -646,8 +646,8 @@ export default function AdminPage() {
                                             {files.map((f, idx) => (
                                                 <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-bg-tertiary border border-border-default hover:bg-bg-primary transition-colors">
                                                     <div className="flex items-center gap-3 overflow-hidden">
-                                                        <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                                                            <FileText size={14} className="text-purple-400" />
+                                                        <div className="w-8 h-8 rounded-full bg-accent-soft flex items-center justify-center flex-shrink-0">
+                                                            <FileText size={14} className="text-accent-text" />
                                                         </div>
                                                         <div className="overflow-hidden">
                                                             <p className="text-sm font-medium text-text-primary truncate">{f.filename}</p>
@@ -704,7 +704,7 @@ export default function AdminPage() {
                                                             return (
                                                                 <button
                                                                     onClick={() => handleReindex(f.filename)}
-                                                                    className="flex items-center gap-1.5 text-purple-400 hover:text-purple-300 font-medium transition-colors"
+                                                                    className="flex items-center gap-1.5 text-accent-text hover:text-accent-strong font-medium transition-colors"
                                                                     title="Re-index this document"
                                                                 >
                                                                     <RotateCcw size={12} />
@@ -740,7 +740,7 @@ export default function AdminPage() {
                         {activeTab === 'tickets' && (
                             <div className="bg-card-background border border-border-default rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[400px]">
                                 <h3 className="font-medium text-text-primary flex items-center gap-2 mb-4">
-                                    <Ticket size={18} className="text-purple-400" />
+                                    <Ticket size={18} className="text-accent-text" />
                                     Active Support Tickets ({tickets.length})
                                 </h3>
 
@@ -752,7 +752,7 @@ export default function AdminPage() {
                                             <div key={t.id} className="p-4 rounded-xl bg-bg-tertiary border border-border-default hover:bg-bg-primary transition-all flex flex-col gap-3 relative">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-mono bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded font-semibold">{t.id}</span>
+                                                        <span className="text-xs font-mono bg-accent-softer text-accent-text px-2 py-0.5 rounded font-semibold">{t.id}</span>
                                                         <h4 className="text-sm font-semibold text-text-primary truncate max-w-xs">{t.subject}</h4>
                                                     </div>
                                                     <div className="flex items-center gap-2">
@@ -769,7 +769,7 @@ export default function AdminPage() {
                                                             "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
                                                             t.status === "Resolved" ? "bg-green-500/10 text-green-400 border border-green-500/20" :
                                                                 t.status === "In Progress" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" :
-                                                                    "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                                                    "bg-accent-soft text-accent-text border border-accent-line"
                                                         )}>
                                                             {t.status}
                                                         </span>
@@ -821,7 +821,7 @@ export default function AdminPage() {
                             <div className="bg-card-background border border-border-default rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[400px]">
                                 <div className="border-b border-border-default pb-4 mb-4">
                                     <h3 className="font-medium text-text-primary flex items-center gap-2">
-                                        <HelpCircle size={18} className="text-purple-400" />
+                                        <HelpCircle size={18} className="text-accent-text" />
                                         FAQ Canned Responses Cache
                                     </h3>
                                     <p className="text-xs text-text-secondary mt-1">Configure instantaneous, rule-based canned responses for high-criticality questions to bypass LLM RAG pipelines.</p>
@@ -836,7 +836,7 @@ export default function AdminPage() {
                                                 placeholder="e.g. fire emergency, evac protocol"
                                                 value={newKeyword}
                                                 onChange={(e) => setNewKeyword(e.target.value)}
-                                                className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-purple-500 animate-none font-sans"
+                                                className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-accent animate-none font-sans"
                                             />
                                         </div>
                                         <div>
@@ -844,7 +844,7 @@ export default function AdminPage() {
                                             <select
                                                 value={newIsActive ? "Active" : "Bypass"}
                                                 onChange={(e) => setNewIsActive(e.target.value === "Active")}
-                                                className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-purple-500 font-sans"
+                                                className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-accent font-sans"
                                             >
                                                 <option value="Active">Active / Low Latency Router</option>
                                                 <option value="Bypass">Bypass / Draft Mode</option>
@@ -858,13 +858,13 @@ export default function AdminPage() {
                                             placeholder="Paste deterministic message text to display..."
                                             value={newResponse}
                                             onChange={(e) => setNewResponse(e.target.value)}
-                                            className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-purple-500 resize-none font-sans"
+                                            className="w-full text-xs p-2.5 bg-input-background border border-border-default rounded-lg focus:outline-none text-text-primary focus:border-accent resize-none font-sans"
                                         ></textarea>
                                     </div>
                                     <div className="flex justify-end">
                                         <button
                                             onClick={handleAddFaq}
-                                            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors cursor-pointer"
+                                            className="px-4 py-2 bg-accent text-accent-ink rounded-lg text-xs font-semibold hover:bg-accent-strong transition-colors cursor-pointer"
                                         >
                                             Add Rule
                                         </button>
@@ -880,7 +880,7 @@ export default function AdminPage() {
                                             {faqs.map((faq) => (
                                                 <div key={faq.id} className="p-3 bg-bg-tertiary border border-border-default rounded-lg flex items-center justify-between text-xs hover:bg-bg-primary transition-colors">
                                                     <div className="space-y-1 overflow-hidden mr-4">
-                                                        <div className="font-semibold text-purple-300 truncate">"{faq.keyword}"</div>
+                                                        <div className="font-semibold text-accent-strong truncate">"{faq.keyword}"</div>
                                                         <div className="text-text-secondary whitespace-pre-wrap">{faq.response}</div>
                                                     </div>
                                                     <div className="flex items-center gap-3 shrink-0">
@@ -911,7 +911,7 @@ export default function AdminPage() {
                             <div className="bg-card-background border border-border-default rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[400px]">
                                 <div className="border-b border-border-default pb-4 mb-4">
                                     <h3 className="font-medium text-text-primary flex items-center gap-2">
-                                        <BarChart2 size={18} className="text-purple-400" />
+                                        <BarChart2 size={18} className="text-accent-text" />
                                         Knowledge Gap Analytics
                                     </h3>
                                     <p className="text-xs text-text-secondary mt-1">Discover what support agents are asking that the knowledge base cannot currently answer.</p>
@@ -1005,7 +1005,7 @@ export default function AdminPage() {
                                 <div className="border-b border-border-default pb-4 mb-4 flex justify-between items-center">
                                     <div>
                                         <h3 className="font-medium text-text-primary flex items-center gap-2">
-                                            <Activity size={18} className="text-purple-400" />
+                                            <Activity size={18} className="text-accent-text" />
                                             Admin Activity Logs
                                         </h3>
                                         <p className="text-xs text-text-secondary mt-1">Audit trail of actions performed by support personnel and admins.</p>
@@ -1050,7 +1050,7 @@ export default function AdminPage() {
                                                                 log.action === "Upload" ? "bg-blue-500/10 text-blue-400 border border-blue-500/15" :
                                                                 log.action === "Delete" ? "bg-red-500/10 text-red-400 border border-red-500/15" :
                                                                 log.action === "Re-index" ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/15" :
-                                                                log.action === "FAQ Added" ? "bg-purple-500/10 text-purple-400 border border-purple-500/15" :
+                                                                log.action === "FAQ Added" ? "bg-accent-soft text-accent-text border border-accent/15" :
                                                                 log.action === "FAQ Deleted" ? "bg-pink-500/10 text-pink-400 border border-pink-500/15" :
                                                                 "bg-amber-500/10 text-amber-400 border border-amber-500/15"
                                                             )}>
@@ -1118,7 +1118,7 @@ export default function AdminPage() {
 
                         <div className="bg-card-background border border-border-default rounded-2xl p-6 shadow-xl">
                             <h3 className="font-medium text-text-primary flex items-center gap-2 mb-4">
-                                <Settings size={18} className="text-purple-400 font-bold" />
+                                <Settings size={18} className="text-accent-text font-bold" />
                                 Advanced Settings
                             </h3>
                             <p className="text-sm text-text-secondary leading-relaxed mb-4 font-sans">
@@ -1126,7 +1126,7 @@ export default function AdminPage() {
                             </p>
                             <button 
                                 onClick={() => setIsSettingsOpen(true)}
-                                className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-xs text-white font-semibold rounded-lg transition-colors cursor-pointer shadow-md"
+                                className="w-full py-2.5 bg-accent hover:bg-accent-strong text-xs text-accent-ink font-semibold rounded-lg transition-colors cursor-pointer shadow-md"
                             >
                                 Manage Settings
                             </button>
@@ -1151,7 +1151,7 @@ export default function AdminPage() {
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={() => setFaqToDelete(null)}
-                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
+                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer font-sans"
                             >
                                 Cancel
                             </button>
@@ -1187,7 +1187,7 @@ export default function AdminPage() {
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={() => setFileToDelete(null)}
-                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer font-sans"
+                                className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer font-sans"
                             >
                                 Cancel
                             </button>
@@ -1214,16 +1214,16 @@ export default function AdminPage() {
                     className="bg-card-background border-l border-border-default w-full max-w-xl h-full flex flex-col shadow-md relative animate-in slide-in-from-right duration-300 font-sans"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-blue-500 to-cyan-400"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent via-blue-500 to-cyan-400"></div>
                     
                     <div className="p-6 border-b border-border-default flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2 font-sans">
-                            <Settings className="text-purple-400 font-bold" size={20} />
+                            <Settings className="text-accent-text font-bold" size={20} />
                             Manage RAG System Settings
                         </h3>
                         <button 
                             onClick={() => setIsSettingsOpen(false)}
-                            className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
+                            className="p-1 hover:bg-bg-tertiary rounded-xl text-text-secondary hover:text-text-primary transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer"
                         >
                             <X size={18} />
                         </button>
@@ -1232,7 +1232,7 @@ export default function AdminPage() {
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                         {/* RAG Parameters */}
                         <div className="space-y-4">
-                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider font-sans">RAG Chunking & Retrieval</h4>
+                            <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">RAG Chunking & Retrieval</h4>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -1241,7 +1241,7 @@ export default function AdminPage() {
                                         type="number"
                                         value={chunkSize}
                                         onChange={(e) => setChunkSize(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                                 <div>
@@ -1250,7 +1250,7 @@ export default function AdminPage() {
                                         type="number"
                                         value={chunkOverlap}
                                         onChange={(e) => setChunkOverlap(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                             </div>
@@ -1265,7 +1265,7 @@ export default function AdminPage() {
                                         max="2"
                                         value={temperature}
                                         onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                                 <div>
@@ -1274,7 +1274,7 @@ export default function AdminPage() {
                                         type="number"
                                         value={topK}
                                         onChange={(e) => setTopK(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                             </div>
@@ -1289,7 +1289,7 @@ export default function AdminPage() {
                                         max="1"
                                         value={similarityThreshold}
                                         onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                                 <div>
@@ -1298,7 +1298,7 @@ export default function AdminPage() {
                                         type="number"
                                         value={maxContextChunks}
                                         onChange={(e) => setMaxContextChunks(parseInt(e.target.value) || 0)}
-                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans font-medium"
+                                        className="w-full p-2.5 bg-input-background border border-border-default rounded-xl text-text-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans font-medium"
                                     />
                                 </div>
                             </div>
@@ -1306,7 +1306,7 @@ export default function AdminPage() {
 
                         {/* Feature Toggles */}
                         <div className="space-y-3.5 pt-2">
-                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider font-sans">Feature Toggles</h4>
+                            <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">Feature Toggles</h4>
                             
                             <div className="flex items-center justify-between p-3 bg-bg-tertiary border border-border-default rounded-xl">
                                 <div>
@@ -1317,7 +1317,7 @@ export default function AdminPage() {
                                     type="checkbox"
                                     checked={enableFaqRouter}
                                     onChange={(e) => setEnableFaqRouter(e.target.checked)}
-                                    className="w-4 h-4 accent-purple-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
+                                    className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
                                 />
                             </div>
 
@@ -1330,7 +1330,7 @@ export default function AdminPage() {
                                     type="checkbox"
                                     checked={enableWebSearch}
                                     onChange={(e) => setEnableWebSearch(e.target.checked)}
-                                    className="w-4 h-4 accent-purple-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
+                                    className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
                                 />
                             </div>
 
@@ -1343,22 +1343,22 @@ export default function AdminPage() {
                                     type="checkbox"
                                     checked={enableFailedLogging}
                                     onChange={(e) => setEnableFailedLogging(e.target.checked)}
-                                    className="w-4 h-4 accent-purple-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
+                                    className="w-4 h-4 accent-[var(--accent)] cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
                                 />
                             </div>
                         </div>
 
                         {/* System Prompt Editor */}
                         <div className="space-y-2 pt-2">
-                            <h4 className="text-sm font-semibold text-purple-300 uppercase tracking-wider font-sans">System Prompt Editor</h4>
+                            <h4 className="text-sm font-semibold text-accent-strong uppercase tracking-wider font-sans">System Prompt Editor</h4>
                             <p className="text-xs text-text-secondary leading-relaxed font-sans">
-                                Customize Valar's RAG instructions. Make sure to keep the required placeholders <code className="text-purple-300 font-semibold">{`{context}`}</code> and <code className="text-purple-300 font-semibold">{`{question}`}</code>.
+                                Customize Valar's RAG instructions. Make sure to keep the required placeholders <code className="text-accent-strong font-semibold">{`{context}`}</code> and <code className="text-accent-strong font-semibold">{`{question}`}</code>.
                             </p>
                             <textarea
                                 rows={10}
                                 value={systemPrompt}
                                 onChange={(e) => setSystemPrompt(e.target.value)}
-                                className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-xs font-mono leading-relaxed focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none resize-none custom-scrollbar"
+                                className="w-full p-3 bg-input-background border border-border-default rounded-xl text-text-primary text-xs font-mono leading-relaxed focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none resize-none custom-scrollbar"
                             />
                         </div>
                     </div>
@@ -1366,19 +1366,19 @@ export default function AdminPage() {
                     <div className="p-6 border-t border-border-default flex gap-3 justify-end shrink-0">
                         <button
                             onClick={handleResetSettings}
-                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans"
+                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans"
                         >
                             Reset to Default
                         </button>
                         <button
                             onClick={() => setIsSettingsOpen(false)}
-                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none font-sans"
+                            className="px-4 py-2 bg-button-secondary hover:bg-bg-tertiary border border-border-default rounded-xl text-xs font-medium text-text-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none font-sans"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSaveSettings}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer font-sans focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none"
+                            className="px-4 py-2 bg-accent hover:bg-accent-strong text-accent-ink rounded-xl text-xs font-semibold transition-colors cursor-pointer font-sans focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none"
                         >
                             Save Changes
                         </button>
@@ -1398,9 +1398,9 @@ export default function AdminPage() {
                 )}>
                     {toast.type === 'success' ? <CheckCircle2 size={16} className="text-green-400" /> : 
                      toast.type === 'error' ? <AlertCircle size={16} className="text-red-400" /> : 
-                     <Loader2 size={16} className="animate-spin text-purple-400" />}
+                     <Loader2 size={16} className="animate-spin text-accent-text" />}
                     <span className="text-xs font-semibold">{toast.message}</span>
-                    <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer">
+                    <button onClick={() => setToast(null)} className="hover:bg-button-secondary p-1 rounded-lg transition-colors text-text-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer">
                         <X size={12} />
                     </button>
                 </div>

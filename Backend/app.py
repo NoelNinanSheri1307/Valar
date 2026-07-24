@@ -6,6 +6,7 @@ import logging
 import secrets
 from typing import Annotated, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -29,7 +30,7 @@ from auth import (
 )
 from rag_pipeline import (
     rag_answer, ingest_document, delete_document_chunks, serialize_citations,
-    generate_follow_ups,
+    generate_follow_ups, run_agentic_rag_stream, describe_llm_failure,
 )
 
 # Create Tables, then patch in any newly added columns on existing DBs
@@ -810,6 +811,92 @@ def ask_rag_session(
     }
 
 
+@app.post("/sessions/{session_id}/ask/stream")
+def ask_rag_session_stream(
+    session_id: int,
+    query: QueryRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.title == "New Chat":
+        session.title = query.question[:30] + ("..." if len(query.question) > 30 else "")
+        db.commit()
+
+    history = [
+        {"role": m.role, "content": m.content}
+        for m in session.messages
+    ]
+
+    user_msg = ChatMessage(session_id=session.id, role="user", content=query.question)
+    db.add(user_msg)
+    db.commit()
+
+    def persist_final(payload: dict) -> int | None:
+        """Save the assistant message and return its id.
+
+        Runs *before* the final SSE event is emitted so the id can travel with
+        it — the client needs it to request follow-ups and to submit feedback.
+        """
+        try:
+            save_db = SessionLocal()
+            try:
+                asst_msg = ChatMessage(
+                    session_id=session.id,
+                    role="assistant",
+                    content=payload.get("answer", ""),
+                    citations=json.dumps(payload.get("citations", [])),
+                    confidence=payload.get("confidence", 0.0),
+                    source_type=payload.get("source_type", "none"),
+                )
+                save_db.add(asst_msg)
+                save_db.commit()
+                save_db.refresh(asst_msg)
+
+                write_audit(
+                    save_db, current_user, "query",
+                    query_text=query.question,
+                    answer_preview=payload.get("answer", ""),
+                    confidence=payload.get("confidence", 0.0),
+                    source_type=payload.get("source_type", "none"),
+                    detail=f"session={session.id}",
+                )
+                return asst_msg.id
+            finally:
+                save_db.close()
+        except Exception as e:
+            logger.exception("[ask/stream] error saving message to DB: %s", e)
+            return None
+
+    def sse_event_generator():
+        try:
+            generator = run_agentic_rag_stream(query.question, db, history=history)
+            for event in generator:
+                if event["type"] == "final":
+                    # Persist first, then attach the new row's id to the event.
+                    event["message_id"] = persist_final(event)
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            # Never let an exception tear down the SSE connection silently —
+            # the browser reports that as an unexplained "network error".
+            logger.exception("[ask/stream] pipeline failure")
+            failure = {
+                "type": "final",
+                "answer": describe_llm_failure(e),
+                "citations": [],
+                "confidence": 0.0,
+                "source_type": "none",
+                "error": True,
+            }
+            failure["message_id"] = persist_final(failure)
+            yield f"data: {json.dumps(failure)}\n\n"
+
+    return StreamingResponse(sse_event_generator(), media_type="text/event-stream")
+
+
 @app.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(session_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id).first()
@@ -1038,6 +1125,46 @@ def get_audit_log(
         }
         for r in rows
     ]
+
+
+_ACTIVITY_ACTION_LABELS = {
+    "login": "Login",
+    "upload": "Upload",
+    "delete": "Delete",
+    "reindex": "Re-index",
+    "add_faq": "FAQ Added",
+    "delete_faq": "FAQ Deleted",
+    "query": "Query",
+    "feedback": "Feedback",
+    "create_user": "User Created",
+}
+
+
+@app.get("/analytics/activity")
+def get_activity_log(
+    limit: int = 100,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Same audit trail as /analytics/audit, reshaped to {username, action,
+    target, timestamp} for the dashboard's Activity Logs tab, which was built
+    against that field naming before /analytics/audit existed."""
+    rows = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(min(limit, 500)).all()
+
+    result = []
+    for r in rows:
+        # query_text (the actual question) is more useful here than detail
+        # (which for "query" rows is just internal session bookkeeping).
+        target = r.query_text or r.detail
+        if target and len(target) > 120:
+            target = target[:120] + "…"
+        result.append({
+            "username": r.username or "unknown",
+            "action": _ACTIVITY_ACTION_LABELS.get(r.action, r.action.replace("_", " ").title()),
+            "target": target,
+            "timestamp": r.created_at.isoformat() if r.created_at else "",
+        })
+    return result
 
 
 # -------------------------

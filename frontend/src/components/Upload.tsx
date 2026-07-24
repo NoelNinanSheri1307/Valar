@@ -128,11 +128,11 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
 
     return (
         <div className="bg-card-background border border-border-default rounded-2xl p-6 md:p-8 shadow-md relative overflow-hidden font-sans">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-400"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent via-blue-500 to-cyan-400"></div>
 
             <div className="flex justify-between items-center mb-6">
                 <h3 className="font-semibold text-xl text-text-primary flex items-center gap-2">
-                    <UploadCloud className="text-purple-400" />
+                    <UploadCloud className="text-accent" />
                     Upload Documents
                 </h3>
                 {hasItems && (
@@ -151,8 +151,8 @@ export default function UploadComponent({ onUploadSuccess }: UploadProps = {}) {
             <div
                 tabIndex={0}
                 className={cn(
-                    "border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer shadow-inner focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none",
-                    isDragging ? "border-purple-500 bg-purple-500/10 scale-[1.01]" : "border-border-default bg-bg-tertiary hover:border-purple-500 hover:bg-bg-primary"
+                    "border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer shadow-inner focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none",
+                    isDragging ? "border-accent bg-accent-soft scale-[1.01]" : "border-border-default bg-bg-tertiary hover:border-accent hover:bg-bg-primary"
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}

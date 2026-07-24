@@ -45,7 +45,7 @@ export default function RegisterPage() {
         <div className="flex min-h-screen items-center justify-center bg-bg-primary relative overflow-hidden font-sans py-12 text-text-primary">
             {/* Background Accents */}
             <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent/20 blur-[120px] rounded-full pointer-events-none"></div>
 
             <div className="w-full max-w-md p-8 md:p-10 z-10">
                 <div className="flex flex-col items-center mb-10">
@@ -70,7 +70,7 @@ export default function RegisterPage() {
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all shadow-inner text-[15px] font-sans outline-none font-medium"
+                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none transition-all shadow-inner text-[15px] font-sans outline-none font-medium"
                                 placeholder="Choose a username"
                                 required
                             />
@@ -81,7 +81,7 @@ export default function RegisterPage() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none transition-all shadow-inner text-[15px] tracking-wide font-sans outline-none font-medium"
+                                className="w-full p-4 bg-input-background border border-border-default rounded-xl text-text-primary placeholder-text-secondary/60 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none transition-all shadow-inner text-[15px] tracking-wide font-sans outline-none font-medium"
                                 placeholder="Create a password"
                                 required
                             />
@@ -93,7 +93,7 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={isLoading || !username || !password}
-                            className="w-full py-4 px-4 bg-text-primary text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm hover:shadow-md font-sans focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none outline-none cursor-pointer"
+                            className="w-full py-4 px-4 bg-text-primary text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm hover:shadow-md font-sans focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none outline-none cursor-pointer"
                         >
                             {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
                                 <>
@@ -108,7 +108,7 @@ export default function RegisterPage() {
                 <div className="text-center mt-10">
                     <p className="text-sm text-text-secondary">
                         Already have an account?{' '}
-                        <a href="/login" className="text-text-primary hover:text-text-secondary underline underline-offset-4 decoration-border-default font-semibold transition-all focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none rounded px-0.5 outline-none">
+                        <a href="/login" className="text-text-primary hover:text-text-secondary underline underline-offset-4 decoration-border-default font-semibold transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded px-0.5 outline-none">
                             Log in
                         </a>
                     </p>
