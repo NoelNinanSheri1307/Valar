@@ -5,7 +5,7 @@ import hashlib
 import logging
 import secrets
 from typing import Annotated, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Response
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -47,19 +47,26 @@ app = FastAPI(
     version="2.1.0",
 )
 
-# CORS configuration allowing local dev, Vercel deployments, and custom env origins
-ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001,https://valar-mu.vercel.app").split(",") if o.strip()
-]
+# Universal CORS middleware configuration
+# allow_origin_regex=r".*" dynamically reflects the requesting origin (e.g., https://valar-mu.vercel.app)
+# allowing all frontend origins and Vercel preview URLs while supporting credentials.
+raw_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+env_origins = [o.strip() for o in raw_origins if o.strip()]
+default_origins = ["http://localhost:3000", "http://localhost:3001", "https://valar-mu.vercel.app"]
+allowed_origins_list = list(set(default_origins + env_origins))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.railway\.app",
+    allow_origins=allowed_origins_list,
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.options("/{full_path:path}")
+async def options_route(full_path: str):
+    return Response(status_code=200)
 
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_MB", "50")) * 1024 * 1024
 
