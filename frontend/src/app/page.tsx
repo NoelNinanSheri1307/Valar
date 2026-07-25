@@ -18,7 +18,7 @@ export default function Home() {
         if (!token) {
             router.push('/login');
         } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+            // eslint-disabl-next-line react-hooks/set-state-in-effect
             setRole(storedRole);
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setLoading(false);
